@@ -46,19 +46,19 @@ function setApplicationMenu() {
               title: 'About PassGen',
               message: `PassGen\nVersion ${version}`,
               detail: 'A secure password generator and vault.\nDeveloper: JalalNasser\nPremium: $3.99/mo for cloud sync and unlimited items.',
-              buttons: ['OK', 'Website', 'Report Issue'],
+              buttons: ['OK', 'Downloads', 'Report Issue'],
               defaultId: 0,
               cancelId: 0
             }).then(({ response }) => {
-              if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen')
-              if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen/issues')
+              if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/releases')
+              if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
             })
           }
         },
         { type: 'separator' },
         {
-          label: 'Terms',
-          click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen/blob/main/LICENSE.txt')
+          label: 'Terms (EULA)',
+          click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/blob/main/LICENSE.txt')
         }
       ]
     }

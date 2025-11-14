@@ -47,6 +47,12 @@ A secure and user-friendly desktop application for generating strong passwords a
 - **TypeScript** - Type-safe development
 - **Vite** - Fast build tool
 
+## Download
+
+Get the latest Windows installer from the public downloads repo:
+
+https://github.com/Jalal-Nasser/PassGen-Releases/releases
+
 ## Getting Started
 
 ### Quick Start (New Users)

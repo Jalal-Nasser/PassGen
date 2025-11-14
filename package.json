@@ -55,10 +55,23 @@
       "dist-electron/**/*"
     ],
     "win": {
-      "icon": "public/icon.png",
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "PassGen",
+      "deleteAppDataOnUninstall": false,
+      "perMachine": false
     },
     "mac": {
       "icon": "public/icon.png",

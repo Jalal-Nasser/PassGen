@@ -33,13 +33,17 @@ function createWindow() {
   mainWindow.center()
 
   // In development, use the Vite dev server
-  const isDev = process.env.NODE_ENV !== 'production' || process.env.VITE_DEV_SERVER_URL
+  const isDev = process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL
   
   if (isDev) {
     const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'
     mainWindow.loadURL(devServerUrl)
-    mainWindow.webContents.openDevTools()
+    // Only open dev tools in development
+    if (process.env.NODE_ENV === 'development') {
+      mainWindow.webContents.openDevTools()
+    }
   } else {
+    // Production: load from dist folder
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 

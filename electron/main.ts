@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Menu, dialog } from 'electron'
 // Load environment variables from .env if present (development convenience)
 try {
   // Dynamically require without adding type dep; ignore if not installed
@@ -10,6 +10,63 @@ import * as path from 'path'
 
 let mainWindow: BrowserWindow | null = null;
 
+function resolveIconPath() {
+  try {
+    if (app.isPackaged) {
+      // In production, files are under resources. We copy icon.png into dist at build time.
+      return path.join(__dirname, '../dist/icon.png')
+    }
+    // In dev, load from public
+    return path.join(process.cwd(), 'public', 'icon.png')
+  } catch {
+    return undefined as unknown as string
+  }
+}
+
+function setApplicationMenu() {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        { role: 'quit' }
+      ]
+    },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About PassGen',
+          click: () => {
+            const version = app.getVersion()
+            dialog.showMessageBox({
+              type: 'info',
+              title: 'About PassGen',
+              message: `PassGen\nVersion ${version}`,
+              detail: 'A secure password generator and vault.\nDeveloper: JalalNasser\nPremium: $3.99/mo for cloud sync and unlimited items.',
+              buttons: ['OK', 'Website', 'Report Issue'],
+              defaultId: 0,
+              cancelId: 0
+            }).then(({ response }) => {
+              if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen')
+              if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen/issues')
+            })
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Terms',
+          click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen/blob/main/LICENSE.txt')
+        }
+      ]
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
+
 function createWindow() {
   // Prevent multiple windows
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -20,9 +77,9 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1040,
     height: 720,
-    minWidth: 900,
-    minHeight: 640,
-    icon: path.join(__dirname, '../build/icon.png'),
+    minWidth: 700,
+    minHeight: 520,
+    icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -67,6 +124,7 @@ if (!gotTheLock) {
 
   app.whenReady().then(() => {
     createWindow()
+    setApplicationMenu()
 
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()

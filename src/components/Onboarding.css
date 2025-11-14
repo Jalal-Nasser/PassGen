@@ -13,16 +13,18 @@
    max-width: 760px;
    width: 100%;
    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-   /* Increase height to fit all content */
-   height: clamp(560px, 78vh, 720px);
-   overflow: hidden;
+   /* Responsive height with scroll for small windows */
+   max-height: 86vh;
+   overflow: auto;
    /* center within column layout */
    margin: auto 0;
    position: relative;
    display: flex;
    flex-direction: column;
-   justify-content: center;
- }/* Progress Bar */
+   justify-content: flex-start;
+ }
+
+/* Progress Bar */
 .progress-bar {
    display: flex;
    align-items: center;
@@ -62,7 +64,7 @@
 .onboarding-step {
   text-align: center;
   /* Keep content area consistent to avoid jump between steps */
-  min-height: 400px;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -262,18 +264,25 @@
  }/* Responsive */
 @media (max-width: 768px) {
   .onboarding-container {
-    padding: 30px 20px;
+    padding: 24px 16px;
   }
 
   .onboarding-step h1 {
-    font-size: 2rem;
+    font-size: 1.6rem;
   }
 
   .progress-line {
-    width: 40px;
+    width: 30px;
   }
 
   .info-cards {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 480px) {
+  .onboarding-logo { width: 32px; height: 32px; }
+  .feature-item { padding: 8px; }
+  .info-card { padding: 16px; }
+  .btn-primary { min-width: 140px; }
 }

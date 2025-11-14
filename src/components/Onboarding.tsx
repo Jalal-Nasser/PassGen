@@ -26,7 +26,7 @@ function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className="onboarding">
       <div className="onboarding-container">
-        <img src="/logo.png" alt="PassGen Logo" className="onboarding-logo" />
+        <img src="./logo.png" alt="PassGen Logo" className="onboarding-logo" />
         <div className="progress-bar">
           <div className={`progress-step ${step >= 1 ? 'active' : ''}`}>1</div>
           <div className={`progress-line ${step >= 2 ? 'active' : ''}`}></div>

@@ -28,7 +28,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     <div className={`splash-screen ${fadeOut ? 'fade-out' : ''}`}>
       <div className="splash-content">
         <div className="logo-container">
-          <img src="/logo-animated.png" alt="PassGen Logo" className="splash-logo" />
+          <img src="./logo-animated.png" alt="PassGen Logo" className="splash-logo" />
         </div>
         <h1 className="app-title">PassGen</h1>
         <p className="app-tagline">Secure Password Manager</p>

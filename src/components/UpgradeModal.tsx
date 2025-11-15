@@ -62,6 +62,7 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
   const [code, setCode] = useState('')
   const [testResult, setTestResult] = useState<string>('')
+  const [devSecret, setDevSecret] = useState<string>(showTestVerify ? store.getSellerSecretForDebug() : '')
   const activateWithCode = () => {
     if (!code) { alert('Enter activation code'); return }
     if (!userEmail) { alert('Enter your email first'); return }
@@ -78,6 +79,14 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
     if (!code || !userEmail) { setTestResult('Enter email and code'); return }
     const ok = store.verifyActivationCode(code, userEmail)
     setTestResult(ok ? '✓ Code matches (dev test)' : '✗ Code does not match')
+  }
+
+  const generateCode = () => {
+    if (!userEmail) { setTestResult('Enter email first'); return }
+    const generated = store.computeActivationCode(userEmail)
+    setCode(generated)
+    navigator.clipboard?.writeText(generated)
+    setTestResult(`✓ Generated & copied: ${generated}`)
   }
 
   if (!open) return null
@@ -171,12 +180,31 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
             </button>
             <button className="btn-primary" onClick={activateWithCode}>Activate</button>
             {showTestVerify && (
-              <button className="btn-secondary" onClick={testVerify}>Test Verify (dev)</button>
+              <>
+                <button className="btn-secondary" onClick={testVerify}>Test Verify (dev)</button>
+                <button className="btn-secondary" onClick={generateCode}>Generate Code (dev)</button>
+              </>
             )}
             <button className="btn-secondary" onClick={onClose}>Close</button>
           </div>
           {showTestVerify && testResult && (
             <div style={{marginTop:8, opacity:0.8}}>{testResult}</div>
+          )}
+          {showTestVerify && (
+            <div style={{marginTop:12, opacity:0.9}}>
+              <label>Seller Secret (dev only, stored locally):</label>
+              <div style={{display:'flex', gap:8}}>
+                <input
+                  type="text"
+                  placeholder="override secret for testing"
+                  value={devSecret}
+                  onChange={(e)=>setDevSecret(e.target.value)}
+                  style={{flex:1}}
+                />
+                <button className="btn-secondary" onClick={()=>{ store.setSellerSecretForDebug(devSecret); setTestResult('Secret updated locally'); }}>Save</button>
+              </div>
+              <small>Used to compute codes during development/testing without rebuild.</small>
+            </div>
           )}
         </div>
       </div>

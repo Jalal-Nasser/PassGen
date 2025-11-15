@@ -28,15 +28,66 @@ function setApplicationMenu() {
     {
       label: 'File',
       submenu: [
+        {
+          label: 'Upgrade to Premium',
+          click: () => {
+            mainWindow?.webContents.send('open-upgrade')
+          }
+        },
+        { type: 'separator' },
         { role: 'quit' }
       ]
     },
-    { role: 'editMenu' },
-    { role: 'viewMenu' },
-    { role: 'windowMenu' },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { role: 'close' }
+      ]
+    },
     {
       label: 'Help',
       submenu: [
+        {
+          label: 'Check for Updates',
+          click: () => {
+            mainWindow?.webContents.executeJavaScript(`
+              (async () => {
+                try {
+                  const res = await fetch('https://api.github.com/repos/Jalal-Nasser/PassGen-Releases/releases/latest');
+                  const data = await res.json();
+                  const latest = data.tag_name?.replace(/^v/, '');
+                  const url = data.html_url;
+                  const current = '1.0.3';
+                  if (latest && latest !== current) {
+                    if (confirm('New version ' + latest + ' available! Go to download page?')) {
+                      window.open(url, '_blank');
+                    }
+                  } else {
+                    alert('You have the latest version.');
+                  }
+                } catch(e) {
+                  alert('Update check failed: ' + e.message);
+                }
+              })()
+            `).catch(() => {})
+          }
+        },
         {
           label: 'About PassGen',
           click: () => {
@@ -75,10 +126,10 @@ function createWindow() {
   }
 
   mainWindow = new BrowserWindow({
-    width: 1040,
-    height: 720,
-    minWidth: 700,
-    minHeight: 520,
+    width: 900,
+    height: 680,
+    minWidth: 800,
+    minHeight: 600,
     icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -95,10 +146,7 @@ function createWindow() {
   if (isDev) {
     const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'
     mainWindow.loadURL(devServerUrl)
-    // Only open dev tools in development
-    if (process.env.NODE_ENV === 'development') {
-      mainWindow.webContents.openDevTools()
-    }
+    // Don't open dev tools automatically
   } else {
     // Production: load from dist folder
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
@@ -108,6 +156,25 @@ function createWindow() {
     mainWindow = null;
   })
 }
+
+// Window control IPC handlers
+ipcMain.on('window:minimize', () => {
+  if (mainWindow) mainWindow.minimize()
+})
+
+ipcMain.on('window:maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
+  }
+})
+
+ipcMain.on('window:close', () => {
+  if (mainWindow) mainWindow.close()
+})
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();

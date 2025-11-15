@@ -1,5 +1,6 @@
 // Simple localStorage-based config store
 // No Node.js dependencies - safe for renderer process
+import CryptoJS from 'crypto-js'
 
 export interface StorageConfig {
   provider: 'local' | 'google-drive' | 's3' | 'digitalocean';
@@ -52,23 +53,23 @@ export class ConfigStore {
     )
   }
 
+  // Dev-only helpers to inspect/override the effective secret without rebuilding
+  getSellerSecretForDebug(): string {
+    return this.getSellerSecret()
+  }
+
+  setSellerSecretForDebug(secret: string): void {
+    if (secret && typeof secret === 'string') {
+      localStorage.setItem('passgen-seller-secret', secret)
+    }
+  }
+
   computeActivationCode(email?: string): string {
     const installId = this.getInstallId()
     const secret = this.getSellerSecret()
     const data = `${installId}|${(email || this.getUserEmail() || '').trim().toLowerCase()}|${secret}`
-  // Try CryptoJS from renderer bundle (fallback)
-    try {
-      // dynamic require may not exist; use global CryptoJS if bundled
-      const CryptoJS = (window as any).CryptoJS
-      if (CryptoJS) {
-        const digest = CryptoJS.SHA256(data).toString()
-        return digest.substring(0, 10).toUpperCase()
-      }
-    } catch {}
-    // Extremely simple fallback (not cryptographically strong)
-    let x = 0
-    for (let i = 0; i < data.length; i++) x = (x * 31 + data.charCodeAt(i)) >>> 0
-    return ("00000000" + x.toString(16)).slice(-8).toUpperCase()
+    const digest = CryptoJS.SHA256(data).toString()
+    return digest.substring(0, 10).toUpperCase()
   }
 
   verifyActivationCode(code: string, email?: string): boolean {

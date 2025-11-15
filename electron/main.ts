@@ -138,7 +138,9 @@ app.on('window-all-closed', () => {
 
 // Handle payment activation email request
 ipcMain.handle('payment:requestActivation', async (_event, payload: { email: string; requestId: string }) => {
-  const seller = process.env.SELLER_EMAIL || ''
+  // Safe default so end-users can request activation via mailto without any env vars
+  const defaultSeller = 'git@mdeploy.dev'
+  const seller = process.env.SELLER_EMAIL || defaultSeller
   const smtpUser = process.env.ZOHO_USER || ''
   const smtpPass = process.env.ZOHO_PASS || ''
   const smtpHost = process.env.ZOHO_HOST || 'smtp.zoho.com'

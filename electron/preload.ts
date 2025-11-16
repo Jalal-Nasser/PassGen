@@ -1,8 +1,11 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, clipboard } from 'electron'
 
 contextBridge.exposeInMainWorld('electron', {
   payment: {
     requestActivation: (payload: { email: string; requestId: string }) => ipcRenderer.invoke('payment:requestActivation', payload)
+  },
+  clipboard: {
+    writeText: (text: string) => clipboard.writeText(text)
   }
 })
 
@@ -17,6 +20,9 @@ declare global {
     electron: {
       payment: {
         requestActivation: (payload: { email: string; requestId: string }) => Promise<{ success: boolean; error?: string }>
+      }
+      clipboard: {
+        writeText: (text: string) => void
       }
     }
     electronAPI: {

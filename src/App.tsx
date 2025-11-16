@@ -112,9 +112,13 @@ function App() {
 
   const copyToClipboard = async () => {
     if (password) {
-      await navigator.clipboard.writeText(password)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      try {
+        window.electron.clipboard.writeText(password)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error('Copy failed:', err)
+      }
     }
   }
 

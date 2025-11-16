@@ -4,8 +4,13 @@ interface PaymentAPI {
 	requestActivation: (payload: { email: string; requestId: string }) => Promise<{ success: boolean; error?: string }>
 }
 
+interface ClipboardAPI {
+	writeText: (text: string) => void
+}
+
 declare interface Window {
 	electron: {
 		payment: PaymentAPI
+		clipboard: ClipboardAPI
 	}
 }

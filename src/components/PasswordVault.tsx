@@ -79,8 +79,13 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
   }
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    alert('Copied to clipboard!')
+    try {
+      window.electron.clipboard.writeText(text)
+      alert('Copied to clipboard!')
+    } catch (err) {
+      console.error('Copy failed:', err)
+      alert('Failed to copy')
+    }
   }
 
   const filteredEntries = entries.filter(entry =>

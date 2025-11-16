@@ -14,10 +14,7 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [installId, setInstallId] = useState<string>('')
-  const showTestVerify =
-    ((import.meta as any)?.env?.DEV as boolean) ||
-    (typeof window !== 'undefined' && window.location?.origin?.includes('localhost')) ||
-    (typeof window !== 'undefined' && localStorage.getItem('passgen-show-test') === '1')
+  const showTestVerify = ((import.meta as any)?.env?.DEV as boolean) === true
 
   useEffect(() => {
     // Attempt to render PayPal buttons if SDK is present

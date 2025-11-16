@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { copyText } from './services/clipboard'
 import SplashScreen from './components/SplashScreen'
 import Onboarding from './components/Onboarding'
 import AppFooter from './components/AppFooter'
@@ -113,9 +114,13 @@ function App() {
   const copyToClipboard = async () => {
     if (password) {
       try {
-        window.electron.clipboard.writeText(password)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        const ok = await copyText(password)
+        if (ok) {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        } else {
+          console.error('Copy failed via all strategies')
+        }
       } catch (err) {
         console.error('Copy failed:', err)
       }

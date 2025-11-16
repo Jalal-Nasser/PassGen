@@ -5,7 +5,31 @@ contextBridge.exposeInMainWorld('electron', {
     requestActivation: (payload: { email: string; requestId: string }) => ipcRenderer.invoke('payment:requestActivation', payload)
   },
   clipboard: {
-    writeText: (text: string) => clipboard.writeText(text)
+    writeText: async (text: string) => {
+      try {
+        clipboard.writeText(text)
+        return true
+      } catch {
+        try {
+          const ok = await ipcRenderer.invoke('clipboard:writeText', text)
+          return !!ok
+        } catch {
+          return false
+        }
+      }
+    },
+    readText: async (): Promise<string> => {
+      try {
+        return clipboard.readText()
+      } catch {
+        try {
+          const txt = await ipcRenderer.invoke('clipboard:readText')
+          return String(txt || '')
+        } catch {
+          return ''
+        }
+      }
+    }
   }
 })
 
@@ -22,7 +46,8 @@ declare global {
         requestActivation: (payload: { email: string; requestId: string }) => Promise<{ success: boolean; error?: string }>
       }
       clipboard: {
-        writeText: (text: string) => void
+        writeText: (text: string) => Promise<boolean>
+        readText: () => Promise<string>
       }
     }
     electronAPI: {

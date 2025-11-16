@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, Menu, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Menu, dialog, clipboard } from 'electron'
 // Load environment variables from .env if present (development convenience)
 try {
   // Dynamically require without adding type dep; ignore if not installed
@@ -241,5 +241,23 @@ ipcMain.handle('payment:requestActivation', async (_event, payload: { email: str
       return { success: false, error: 'SMTP not configured; opened mail client.' }
     }
     return { success: false, error: 'Seller email not configured' }
+  }
+})
+
+// Clipboard IPC fallbacks
+ipcMain.handle('clipboard:writeText', async (_event, text: string) => {
+  try {
+    clipboard.writeText(String(text ?? ''))
+    return true
+  } catch {
+    return false
+  }
+})
+
+ipcMain.handle('clipboard:readText', async () => {
+  try {
+    return clipboard.readText()
+  } catch {
+    return ''
   }
 })

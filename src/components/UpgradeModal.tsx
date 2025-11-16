@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ConfigStore } from '../services/configStore'
+import { copyText } from '../services/clipboard'
 import './UpgradeModal.css'
 
 interface UpgradeModalProps {
@@ -78,11 +79,11 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
     setTestResult(ok ? '✓ Code matches (dev test)' : '✗ Code does not match')
   }
 
-  const generateCode = () => {
+  const generateCode = async () => {
     if (!userEmail) { setTestResult('Enter email first'); return }
     const generated = store.computeActivationCode(userEmail)
     setCode(generated)
-    navigator.clipboard?.writeText(generated)
+    try { await copyText(generated) } catch {}
     setTestResult(`✓ Generated & copied: ${generated}`)
   }
 
@@ -150,7 +151,7 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
             <label>Install ID (for support):</label>
             <div style={{display:'flex', gap:8, alignItems:'center'}}>
               <input type="text" value={installId} readOnly style={{flex:1}} />
-              <button className="btn-secondary" onClick={()=>{ navigator.clipboard?.writeText(installId) }}>Copy</button>
+              <button className="btn-secondary" onClick={async ()=>{ try { const ok = await copyText(installId); if (!ok) alert('Failed to copy'); } catch { alert('Failed to copy') } }}>Copy</button>
             </div>
           </div>
           <div className="email-capture">

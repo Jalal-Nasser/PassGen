@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build && node scripts/sync-icons.js && electron-builder",
     "preview": "vite preview",
-    "electron:dev": "concurrently \"vite --port 5173 --strictPort\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:dev": "tsc && concurrently \"vite --port 5173 --strictPort\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "tsc && vite build && node scripts/sync-icons.js && electron-builder",
     "gen:activation": "node scripts/generate-activation.js"
   },

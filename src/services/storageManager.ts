@@ -67,18 +67,78 @@ export class StorageManager {
     // Load from localStorage for all providers (temporary until IPC is implemented)
     const vaultData = localStorage.getItem('passgen-vault-data');
     if (vaultData) {
-      const vault = JSON.parse(vaultData);
+      let vault: Array<{ filename: string; data: string }> = [];
+      try {
+        vault = JSON.parse(vaultData);
+      } catch (e) {
+        console.warn('Vault index is corrupted; resetting vault.');
+        localStorage.removeItem('passgen-vault-data');
+        return entries;
+      }
       for (const item of vault) {
         try {
           const entry = this.encryption.decryptEntry(item.data);
           entries.push(entry);
         } catch (error) {
-          console.error(`Failed to decrypt entry:`, error);
+          console.warn(`Failed to decrypt entry:`, error);
         }
       }
     }
 
     return entries;
+  }
+
+  /**
+   * Attempts to repair the local vault by:
+   * - Dropping unreadable or truncated records
+   * - Migrating any accidental plaintext records to encrypted form
+   * Returns a summary of actions taken.
+   */
+  async repairVault(): Promise<{ total: number; kept: number; migrated: number; removed: number }> {
+    if (!this.encryption) throw new Error('Encryption not initialized');
+
+    const raw = localStorage.getItem('passgen-vault-data');
+    if (!raw) return { total: 0, kept: 0, migrated: 0, removed: 0 };
+
+    let list: Array<{ filename: string; data: string }> = [];
+    try {
+      list = JSON.parse(raw);
+    } catch (e) {
+      console.warn('Repair: vault index JSON invalid. Clearing.');
+      localStorage.removeItem('passgen-vault-data');
+      return { total: 0, kept: 0, migrated: 0, removed: 0 };
+    }
+
+    const next: Array<{ filename: string; data: string }> = [];
+    let migrated = 0;
+    let kept = 0;
+    for (const item of list) {
+      if (!item || typeof item.data !== 'string') { continue; }
+      try {
+        // If decrypt works, keep as-is
+        this.encryption.decryptEntry(item.data);
+        next.push(item);
+        kept++;
+        continue;
+      } catch {}
+
+      // Try to detect plaintext JSON and migrate
+      try {
+        const maybePlain: PasswordEntry = JSON.parse(item.data);
+        if (maybePlain && maybePlain.id && maybePlain.name) {
+          const encryptedData = this.encryption.encryptEntry(maybePlain);
+          next.push({ filename: item.filename || `password-${maybePlain.id}.json`, data: encryptedData });
+          migrated++;
+        }
+      } catch {
+        // drop unrecoverable record
+      }
+    }
+
+    localStorage.setItem('passgen-vault-data', JSON.stringify(next));
+    const total = list.length;
+    const removed = total - (kept + migrated);
+    return { total, kept, migrated, removed };
   }
 
   getGoogleDriveAuthUrl(): string {

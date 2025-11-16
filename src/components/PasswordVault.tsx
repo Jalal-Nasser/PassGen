@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { PasswordEntry } from '../services/encryption'
 import { StorageManager } from '../services/storageManager'
 import './PasswordVault.css'
+import { copyText } from '../services/clipboard'
 import { ConfigStore } from '../services/configStore'
 
 interface PasswordVaultProps {
@@ -35,6 +36,21 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
     } catch (error) {
       console.error('Failed to load entries:', error)
       alert('Failed to load passwords: ' + (error as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const repairVault = async () => {
+    if (!confirm('Repair will remove unreadable items and migrate any plaintext records to encrypted form. Continue?')) return
+    try {
+      setLoading(true)
+      const summary = await storageManager.repairVault()
+      await loadEntries()
+      alert(`Repair complete.\nTotal: ${summary.total}\nKept: ${summary.kept}\nMigrated: ${summary.migrated}\nRemoved: ${summary.removed}`)
+    } catch (e) {
+      console.error('Repair failed:', e)
+      alert('Repair failed: ' + (e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -78,10 +94,10 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
     }
   }
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = async (text: string) => {
     try {
-      window.electron.clipboard.writeText(text)
-      alert('Copied to clipboard!')
+      const ok = await copyText(text)
+      alert(ok ? 'Copied to clipboard!' : 'Failed to copy')
     } catch (err) {
       console.error('Copy failed:', err)
       alert('Failed to copy')
@@ -107,6 +123,9 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
           </button>
           <button onClick={loadEntries} className="action-btn" disabled={loading}>
             🔄 Refresh
+          </button>
+          <button onClick={repairVault} className="action-btn" disabled={loading}>
+            🛠 Repair
           </button>
         </div>
       </div>

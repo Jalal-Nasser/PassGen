@@ -90,6 +90,11 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
   }
 
   const handleExport = async () => {
+    if (!store.isPremium()) {
+      alert('Export Vault Backup is a Premium feature. Upgrade to Premium to backup your vault.')
+      window.dispatchEvent(new Event('open-upgrade'))
+      return
+    }
     try {
       setLoading(true)
       const data = storageManager.exportVault()
@@ -120,6 +125,11 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
   }
 
   const handleImport = async () => {
+    if (!store.isPremium()) {
+      alert('Import Vault Backup is a Premium feature. Upgrade to Premium to restore backups.')
+      window.dispatchEvent(new Event('open-upgrade'))
+      return
+    }
     if (!confirm('Importing will replace your current vault. Make sure you have a backup! Continue?')) return
     try {
       setLoading(true)
@@ -316,10 +326,12 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
                 <button onClick={repairVault} disabled={loading}>Repair Vault</button>
               )}
               <button onClick={() => window.dispatchEvent(new Event('open-storage-setup'))}>Change Storage</button>
-              <button onClick={handleExport} disabled={loading}>Export Vault Backup</button>
-              <button onClick={handleImport} disabled={loading}>Import Vault Backup</button>
               {store.isPremium() && (
-                <button onClick={exportToCSV}>Export to CSV</button>
+                <>
+                  <button onClick={handleExport} disabled={loading}>Export Vault Backup</button>
+                  <button onClick={handleImport} disabled={loading}>Import Vault Backup</button>
+                  <button onClick={exportToCSV}>Export to CSV</button>
+                </>
               )}
             </div>
           </div>

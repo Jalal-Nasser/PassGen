@@ -48,6 +48,17 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
         if (typeof token === 'string') setSessionToken(token)
       } catch {}
     })()
+    // Close dropdown when clicking outside
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+          (menu as HTMLElement).style.display = 'none'
+        })
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
   const loadEntries = async () => {
@@ -190,10 +201,21 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
   return (
     <div className="password-vault">
       <div className="vault-header">
-        <h2>🔐 Password Vault {store.isPremium() && <span className="premium-badge">⭐ Premium</span>}</h2>
+        <div className="header-left">
+          <h2>Password Vault {store.isPremium() && <span className="premium-badge">Premium</span>}</h2>
+          <div className="search-inline">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input-inline"
+            />
+          </div>
+        </div>
         <div className="vault-actions">
-          <button onClick={onGenerateNew} className="action-btn">
-            Generate New
+          <button onClick={onGenerateNew} className="btn-primary">
+            Generate
           </button>
           <button onClick={() => {
             setShowAddForm(!showAddForm)
@@ -203,36 +225,28 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
               setEditingEntry(null)
               setNewEntry({ name: '', username: '', password: '', url: '', notes: '' })
             }
-          }} className="action-btn">
-            {showAddForm ? 'Cancel' : '+ Add Password'}
+          }} className={showAddForm ? "btn-secondary" : "btn-primary"}>
+            {showAddForm ? 'Cancel' : 'Add New'}
           </button>
-          <button onClick={loadEntries} className="action-btn" disabled={loading}>
-            🔄 Refresh
-          </button>
-          {((import.meta as any)?.env?.DEV as boolean) === true && (
-            <button onClick={repairVault} className="action-btn" disabled={loading}>
-              🛠 Repair
+          <div className="dropdown">
+            <button className="btn-secondary dropdown-toggle" onClick={(e) => {
+              const menu = e.currentTarget.nextElementSibling as HTMLElement
+              menu.style.display = menu.style.display === 'block' ? 'none' : 'block'
+            }}>
+              Actions
             </button>
-          )}
-          <button onClick={() => window.dispatchEvent(new Event('open-storage-setup'))} className="action-btn">
-            ⚙️ Change Storage
-          </button>
-          {store.isPremium() && (
-            <button onClick={exportToCSV} className="action-btn">
-              📄 Export CSV
-            </button>
-          )}
+            <div className="dropdown-menu">
+              <button onClick={loadEntries} disabled={loading}>Refresh</button>
+              {((import.meta as any)?.env?.DEV as boolean) === true && (
+                <button onClick={repairVault} disabled={loading}>Repair Vault</button>
+              )}
+              <button onClick={() => window.dispatchEvent(new Event('open-storage-setup'))}>Change Storage</button>
+              {store.isPremium() && (
+                <button onClick={exportToCSV}>Export to CSV</button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="🔍 Search passwords..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
       </div>
 
       {showAddForm && (
@@ -309,66 +323,98 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
         {!loading && filteredEntries.map(entry => (
           <div key={entry.id} className="password-entry">
             <div className="entry-header">
-              <h3>{entry.name}</h3>
-              <div className="entry-meta">
+              <div className="entry-title">
+                <h3>{entry.name}</h3>
                 {entry.url && (
-                  <a href={entry.url} target="_blank" rel="noopener noreferrer" className="entry-url">
-                    🔗 Open
+                  <a href={entry.url} target="_blank" rel="noopener noreferrer" className="entry-url" title={entry.url}>
+                    {(() => {
+                      try {
+                        return new URL(entry.url!).hostname.replace('www.', '')
+                      } catch {
+                        return entry.url
+                      }
+                    })()}
                   </a>
                 )}
-                <button onClick={() => handleEditEntry(entry)} className="edit-btn">
-                  ✏️ Edit
-                </button>
               </div>
+              <button onClick={() => handleEditEntry(entry)} className="btn-icon" title="Edit">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                </svg>
+              </button>
             </div>
-            
-            {entry.username && (
-              <div className="entry-field">
-                <label>Username:</label>
-                <div className="field-value">
-                  <span>{entry.username}</span>
-                  <button onClick={() => copyToClipboard(entry.username!)} className="copy-small-btn">
-                    📋
+
+            <div className="entry-fields">
+              {entry.username && (
+                <div className="field-row">
+                  <div className="field-content">
+                    <span className="field-label">Username</span>
+                    <span className="field-text">{entry.username}</span>
+                  </div>
+                  <button onClick={() => copyToClipboard(entry.username!)} className="btn-copy" title="Copy username">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                      <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>
                   </button>
                 </div>
-              </div>
-            )}
-            
-            <div className="entry-field">
-              <label>Password:</label>
-              <div className="field-value">
-                <span className="password-hidden">••••••••</span>
-                <button onClick={() => copyToClipboard(entry.password)} className="copy-small-btn">
-                  📋 Copy
+              )}
+
+              <div className="field-row">
+                <div className="field-content">
+                  <span className="field-label">Password</span>
+                  <span className="field-text password-hidden">••••••••</span>
+                </div>
+                <button onClick={() => copyToClipboard(entry.password)} className="btn-copy" title="Copy password">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                  </svg>
                 </button>
               </div>
+
+              {entry.notes && (
+                <div className="field-row notes-row">
+                  <div className="field-content">
+                    <span className="field-label">Notes</span>
+                    <span className="field-text notes-text">{entry.notes}</span>
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {entry.notes && (
-              <div className="entry-field">
-                <label>Notes:</label>
-                <p className="notes">{entry.notes}</p>
-              </div>
-            )}
-            
+
             <div className="entry-footer">
-              <small>Created: {new Date(entry.createdAt).toLocaleDateString()}</small>
+              <span className="entry-date">Added {new Date(entry.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
         ))}
       </div>
 
       <div className="vault-footer">
-        <p>
-          Storage: <strong>{storageManager.getCurrentProvider()}</strong>
-        </p>
-        <p className="encryption-notice" style={{display:'flex', alignItems:'center', gap:8}}>
-          🔑 Session Token: <input type="text" readOnly value={sessionToken} style={{flex:1}} />
-          <button className="copy-small-btn" onClick={async ()=>{ const ok = await copyText(sessionToken); if (!ok) alert('Failed to copy token'); }}>Copy</button>
-        </p>
-        <p className="encryption-notice">
-          🔒 All passwords are encrypted with your master password
-        </p>
+        <div className="footer-row">
+          <span className="footer-label">Storage Provider</span>
+          <span className="footer-value">{storageManager.getCurrentProvider()}</span>
+        </div>
+        {sessionToken && (
+          <div className="footer-row session-token-row">
+            <span className="footer-label">Extension Token</span>
+            <div className="token-container">
+              <input type="text" readOnly value={sessionToken} className="token-input" />
+              <button className="btn-copy-small" onClick={async ()=>{ const ok = await copyText(sessionToken); if (!ok) alert('Failed to copy token'); }} title="Copy session token">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                  <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="footer-encryption">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style={{marginRight: '6px'}}>
+            <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+          </svg>
+          All passwords are encrypted with your master password
+        </div>
       </div>
     </div>
   )

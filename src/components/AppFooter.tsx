@@ -10,14 +10,24 @@ function AppFooter() {
     setChecking(true)
     setUpdateMsg(null)
     try {
-      const res = await fetch('https://api.github.com/repos/Jalal-Nasser/PassGen-Releases/releases/latest')
+      const res = await fetch('https://api.github.com/repos/Jalal-Nasser/PassGen/releases/latest')
       if (!res.ok) throw new Error('Failed to fetch release info')
       const data = await res.json()
       const latest = data.tag_name?.replace(/^v/, '')
       const url = data.html_url
       // @ts-ignore
       const current = (window as any).appVersion || (import.meta as any)?.env?.npm_package_version || '1.0.0'
-      if (latest && latest !== current) {
+      const parse = (v:string)=>{
+        const m = (v||'0.0.0').match(/^(\d+)\.(\d+)\.(\d+)/)
+        return m ? [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])] : [0,0,0]
+      }
+      const newer = (a:string,b:string)=>{
+        const [A1,A2,A3] = parse(a), [B1,B2,B3] = parse(b)
+        if (A1!==B1) return A1>B1
+        if (A2!==B2) return A2>B2
+        return A3>B3
+      }
+      if (latest && newer(latest, current)) {
         setUpdateMsg(`New version ${latest} available! ` + url)
         if (window.confirm(`A new version (${latest}) is available!\n\nGo to download page?`)) {
           window.open(url, '_blank')

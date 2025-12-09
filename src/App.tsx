@@ -58,6 +58,9 @@ function App() {
   }, [])
 
   // Check if user has completed onboarding before
+  // NOTE: All user data (premium status, passwords, master hash, passkey) is stored in localStorage
+  // and persists across app updates. This ensures no data loss during updates.
+  // See DATA_PERSISTENCE.md for details.
   useEffect(() => {
     const hasCompletedOnboarding = localStorage.getItem('passgen-onboarding-complete')
     if (hasCompletedOnboarding === 'true') {

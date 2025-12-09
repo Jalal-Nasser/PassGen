@@ -6,9 +6,10 @@ interface TitleBarProps {
   onOpenUpgrade: () => void
   onOpenTerms: () => void
   onCheckUpdates: () => void
+  isPremium?: boolean
 }
 
-function TitleBar({ onResetApp, onOpenUpgrade, onCheckUpdates, onOpenTerms }: TitleBarProps) {
+function TitleBar({ onResetApp, onOpenUpgrade, onCheckUpdates, onOpenTerms, isPremium = false }: TitleBarProps) {
   const [showMenu, setShowMenu] = useState(false)
 
   const openAbout = () => {
@@ -43,7 +44,7 @@ function TitleBar({ onResetApp, onOpenUpgrade, onCheckUpdates, onOpenTerms }: Ti
         </button>
         {showMenu && (
           <div className="title-menu-dropdown">
-            <button onClick={onOpenUpgrade}>⭐ Upgrade to Premium</button>
+            {!isPremium && <button onClick={onOpenUpgrade}>⭐ Upgrade to Premium</button>}
             <button onClick={onCheckUpdates}>🔄 Check for Updates</button>
             <button onClick={openAbout}>ℹ️ About PassGen</button>
             <button onClick={openDownloads}>📥 Downloads</button>

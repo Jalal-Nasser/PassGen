@@ -66,6 +66,8 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
     if (!userEmail) { alert('Enter your email first'); return }
     if (store.verifyActivationCode(code, userEmail)) {
       store.setPremium(true)
+      // Notify main process to update menu
+      ;(window as any).electronAPI?.emit?.('premium:changed')
       onClose()
       alert('Premium activated. Enjoy!')
     } else {

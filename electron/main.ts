@@ -27,6 +27,85 @@ function resolveIconPath() {
 }
 
 function setApplicationMenu() {
+  // Query localStorage to check premium status
+  let isPremium = false
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.executeJavaScript('localStorage.getItem("passgen-premium")').then(result => {
+      // Just rebuild menu after checking
+      const template: Electron.MenuItemConstructorOptions[] = [
+        {
+          label: 'File',
+          submenu: [
+            ...(result === 'true' ? [] : [{
+              label: 'Upgrade to Premium',
+              click: () => {
+                mainWindow?.webContents.executeJavaScript(`window.dispatchEvent(new Event('open-upgrade'))`)
+              }
+            } as Electron.MenuItemConstructorOptions, { type: 'separator' } as Electron.MenuItemConstructorOptions]),
+            { role: 'quit' } as Electron.MenuItemConstructorOptions
+          ]
+        },
+        {
+          label: 'View',
+          submenu: [
+            { role: 'reload' },
+            { role: 'forceReload' },
+            { role: 'toggleDevTools' },
+            { type: 'separator' },
+            { role: 'resetZoom' },
+            { role: 'zoomIn' },
+            { role: 'zoomOut' },
+            { type: 'separator' },
+            { role: 'togglefullscreen' }
+          ]
+        },
+        {
+          label: 'Window',
+          submenu: [
+            { role: 'minimize' },
+            { role: 'zoom' },
+            { role: 'close' }
+          ]
+        },
+        {
+          label: 'Help',
+          submenu: [
+            {
+              label: 'Check for Updates',
+              click: () => { checkForUpdates(false) }
+            },
+            {
+              label: 'About PassGen',
+              click: () => {
+                const version = app.getVersion()
+                dialog.showMessageBox({
+                  type: 'info',
+                  title: 'About PassGen',
+                  message: `PassGen\nVersion ${version}`,
+                  detail: 'A secure password generator and vault.\nDeveloper: JalalNasser\nPremium: $3.99/mo for cloud sync and unlimited items.',
+                  buttons: ['OK', 'Downloads', 'Report Issue'],
+                  defaultId: 0,
+                  cancelId: 0
+                }).then(({ response }) => {
+                  if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/releases')
+                  if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
+                })
+              }
+            }
+          ]
+        }
+      ]
+      Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+    }).catch(() => {
+      // Fallback: build default menu without checking
+      buildDefaultMenu()
+    })
+  } else {
+    buildDefaultMenu()
+  }
+}
+
+function buildDefaultMenu() {
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'File',
@@ -411,6 +490,10 @@ ipcMain.on('vault:unlocked', () => {
 
 ipcMain.on('vault:locked', () => {
   sessionToken = null
+})
+
+ipcMain.on('premium:changed', () => {
+  setApplicationMenu()
 })
 
 function startBridgeServer() {

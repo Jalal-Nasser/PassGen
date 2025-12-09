@@ -1,10 +1,16 @@
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function AppFooter() {
   const year = new Date().getFullYear()
   const [checking, setChecking] = useState(false)
   const [updateMsg, setUpdateMsg] = useState<string|null>(null)
+  const [isPremium, setIsPremium] = useState(false)
+
+  useEffect(() => {
+    const premium = localStorage.getItem('passgen-premium') === 'true'
+    setIsPremium(premium)
+  }, [])
 
   const checkForUpdate = async () => {
     setChecking(true)
@@ -47,7 +53,7 @@ function AppFooter() {
       © {year} PassGen · Developer: <a href="https://github.com/Jalal-Nasser" target="_blank" rel="noopener noreferrer">JalalNasser</a> · Blog: <a href="https://jalalnasser.com" target="_blank" rel="noopener noreferrer">BlogiFy</a>
       {' '}· <a href="#" onClick={(e)=>{e.preventDefault(); window.dispatchEvent(new Event('open-terms'))}}>Terms</a>
       {' '}· <a href="#" onClick={(e)=>{e.preventDefault(); checkForUpdate()}}>{checking ? 'Checking...' : 'Check for Updates'}</a>
-      {' '}· Free: 4 passwords · <a href="#" onClick={(e)=>{e.preventDefault(); window.dispatchEvent(new Event('open-upgrade'))}}>Upgrade to Premium ($3.99/mo)</a>
+      {' '}· {isPremium ? 'Premium member' : 'Free: 4 passwords'} {!isPremium && <><span>·</span> <a href="#" onClick={(e)=>{e.preventDefault(); window.dispatchEvent(new Event('open-upgrade'))}}>Upgrade to Premium ($3.99/mo)</a></>}
       {updateMsg && <div style={{marginTop:4, fontSize:13, color:'#4a4'}}>{updateMsg}</div>}
     </footer>
   )

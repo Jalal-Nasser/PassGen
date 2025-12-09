@@ -43,6 +43,8 @@ function App() {
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [showStorageSetup, setShowStorageSetup] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [passwordHint, setPasswordHint] = useState('')
 
   useEffect(() => {
     const openUpgrade = () => setShowUpgrade(true)
@@ -73,6 +75,11 @@ function App() {
       } else {
         setMode('setup')
       }
+    }
+    // Load password hint
+    const savedHint = localStorage.getItem('passgen-password-hint')
+    if (savedHint) {
+      setPasswordHint(savedHint)
     }
   }, [storageManager])
 
@@ -334,17 +341,54 @@ function App() {
 
         {mode === 'auth' && (
           <div className="auth-screen">
-            <h1>🔐 PassGen</h1>
-            <p className="subtitle">{localStorage.getItem('passgen-master-hash') ? 'Enter your master password' : 'Set a new master password'}</p>
+            <div className="auth-logo">
+              <svg width="80" height="80" viewBox="0 0 512 512" fill="none">
+                <defs>
+                  <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#667eea" />
+                    <stop offset="100%" stopColor="#764ba2" />
+                  </linearGradient>
+                </defs>
+                {/* Outer circle */}
+                <circle cx="256" cy="256" r="240" fill="url(#logoGradient)" />
+                {/* Inner white circle */}
+                <circle cx="256" cy="256" r="180" fill="white" />
+                {/* Purple P shape */}
+                <path d="M 200 140 L 200 420 L 260 420 L 260 300 C 260 300 340 300 340 220 C 340 140 260 140 260 140 Z M 260 180 C 260 180 300 180 300 220 C 300 260 260 260 260 260 L 260 180 Z" fill="url(#logoGradient)" />
+              </svg>
+            </div>
+            <h1 className="auth-title">PassGen</h1>
+            <p className="auth-subtitle">{localStorage.getItem('passgen-master-hash') ? 'Enter your master password' : 'Set a new master password'}</p>
             <div className="auth-form">
-              <input
-                type="password"
-                value={masterPasswordInput}
-                onChange={(e) => setMasterPasswordInput(e.target.value)}
-                placeholder={localStorage.getItem('passgen-master-hash') ? 'Master Password (min 8 characters)' : 'Create Master Password (min 8 characters)'}
-                className="auth-input"
-                onKeyPress={(e) => e.key === 'Enter' && handleMasterPasswordSubmit()}
-              />
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={masterPasswordInput}
+                  onChange={(e) => setMasterPasswordInput(e.target.value)}
+                  placeholder={localStorage.getItem('passgen-master-hash') ? 'Master Password (min 8 characters)' : 'Create Master Password (min 8 characters)'}
+                  className="auth-input"
+                  onKeyPress={(e) => e.key === 'Enter' && handleMasterPasswordSubmit()}
+                />
+                <button
+                  type="button"
+                  className="toggle-password-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {passwordHint && localStorage.getItem('passgen-master-hash') && (
+                <p className="password-hint">💡 Hint: {passwordHint}</p>
+              )}
               <button onClick={handleMasterPasswordSubmit} className="auth-btn">
                 {localStorage.getItem('passgen-master-hash') ? 'Unlock Vault' : 'Set Master Password'}
               </button>

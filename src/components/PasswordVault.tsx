@@ -25,6 +25,7 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [sessionToken, setSessionToken] = useState<string>('')
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set())
   const store = new ConfigStore()
 
   useEffect(() => {
@@ -283,6 +284,18 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
     entry.url?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const toggleEntry = (entryId: string) => {
+    setExpandedEntries(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId)
+      } else {
+        newSet.add(entryId)
+      }
+      return newSet
+    })
+  }
+
   const handleSetupPasskey = async () => {
     try {
       setLoading(true)
@@ -475,13 +488,20 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
           </div>
         )}
 
-        {!loading && filteredEntries.map(entry => (
-          <div key={entry.id} className="password-entry">
-            <div className="entry-header">
+        {!loading && filteredEntries.map(entry => {
+          const isExpanded = expandedEntries.has(entry.id)
+          return (
+          <div key={entry.id} className={`password-entry ${isExpanded ? 'expanded' : 'collapsed'}`}>
+            <div className="entry-header" onClick={() => toggleEntry(entry.id)}>
+              <button className="btn-expand" title={isExpanded ? 'Collapse' : 'Expand'}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                  <path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                </svg>
+              </button>
               <div className="entry-title">
                 <h3>{entry.name}</h3>
                 {entry.url && (
-                  <a href={entry.url} target="_blank" rel="noopener noreferrer" className="entry-url" title={entry.url}>
+                  <a href={entry.url} target="_blank" rel="noopener noreferrer" className="entry-url" title={entry.url} onClick={(e) => e.stopPropagation()}>
                     {(() => {
                       try {
                         return new URL(entry.url!).hostname.replace('www.', '')
@@ -492,14 +512,14 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
                   </a>
                 )}
               </div>
-              <button onClick={() => handleEditEntry(entry)} className="btn-icon" title="Edit">
+              <button onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} className="btn-icon" title="Edit">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
                 </svg>
               </button>
             </div>
 
-            <div className="entry-fields">
+            {isExpanded && <div className="entry-fields">
               {entry.username && (
                 <div className="field-row">
                   <div className="field-content">
@@ -536,13 +556,14 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
                   </div>
                 </div>
               )}
-            </div>
+            </div>}
 
-            <div className="entry-footer">
+            {isExpanded && <div className="entry-footer">
               <span className="entry-date">Added {new Date(entry.createdAt).toLocaleDateString()}</span>
-            </div>
+            </div>}
           </div>
-        ))}
+        )}
+        )}
       </div>
 
       <div className="vault-footer">

@@ -9,15 +9,15 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
 
   const handleMinimize = () => {
-    window.electronAPI?.minimize()
+    (window as any).electronAPI?.minimize()
   }
 
   const handleMaximize = () => {
-    window.electronAPI?.maximize()
+    (window as any).electronAPI?.maximize()
   }
 
   const handleClose = () => {
-    window.electronAPI?.close()
+    (window as any).electronAPI?.close()
   }
 
   const toggleMenu = (menu: string) => {

@@ -348,20 +348,7 @@ function App() {
         {mode === 'auth' && (
           <div className="auth-screen">
             <div className="auth-logo">
-              <svg width="80" height="80" viewBox="0 0 512 512" fill="none">
-                <defs>
-                  <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#667eea" />
-                    <stop offset="100%" stopColor="#764ba2" />
-                  </linearGradient>
-                </defs>
-                {/* Outer circle */}
-                <circle cx="256" cy="256" r="240" fill="url(#logoGradient)" />
-                {/* Inner white circle */}
-                <circle cx="256" cy="256" r="180" fill="white" />
-                {/* Purple P shape */}
-                <path d="M 200 140 L 200 420 L 260 420 L 260 300 C 260 300 340 300 340 220 C 340 140 260 140 260 140 Z M 260 180 C 260 180 300 180 300 220 C 300 260 260 260 260 260 L 260 180 Z" fill="url(#logoGradient)" />
-              </svg>
+              <img src="icon.png" alt="PassGen Logo" width="80" height="80" />
             </div>
             <h1 className="auth-title">PassGen</h1>
             <p className="auth-subtitle">{localStorage.getItem('passgen-master-hash') ? 'Enter your master password' : 'Set a new master password'}</p>

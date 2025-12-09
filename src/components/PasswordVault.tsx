@@ -59,7 +59,18 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
       }
     }
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+
+    // Listen for vault import/export events from menu
+    const handleVaultExport = () => handleExport()
+    const handleVaultImport = () => handleImport()
+    window.addEventListener('vault-export', handleVaultExport as EventListener)
+    window.addEventListener('vault-import', handleVaultImport as EventListener)
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+      window.removeEventListener('vault-export', handleVaultExport as EventListener)
+      window.removeEventListener('vault-import', handleVaultImport as EventListener)
+    }
   }, [])
 
   const loadEntries = async () => {

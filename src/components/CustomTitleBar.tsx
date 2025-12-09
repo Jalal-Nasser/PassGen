@@ -51,20 +51,16 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
               <>
                 <div className="menu-overlay" onClick={closeMenus}></div>
                 <div className="menu-dropdown">
-                  <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>New Vault</span>
-                    <span className="shortcut">Ctrl+N</span>
-                  </button>
-                  <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>Open Vault</span>
+                  <button className="menu-dropdown-item" onClick={() => { closeMenus(); window.dispatchEvent(new CustomEvent('vault-import')); }}>
+                    <span>Open Vault Backup</span>
                     <span className="shortcut">Ctrl+O</span>
                   </button>
-                  <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>Save Vault</span>
+                  <button className="menu-dropdown-item" onClick={() => { closeMenus(); window.dispatchEvent(new CustomEvent('vault-export')); }}>
+                    <span>Save Vault Backup</span>
                     <span className="shortcut">Ctrl+S</span>
                   </button>
                   <div className="menu-divider"></div>
-                  <button className="menu-dropdown-item" onClick={closeMenus}>
+                  <button className="menu-dropdown-item" onClick={() => { closeMenus(); window.dispatchEvent(new Event('open-upgrade')); }}>
                     <span>Settings</span>
                     <span className="shortcut">Ctrl+,</span>
                   </button>

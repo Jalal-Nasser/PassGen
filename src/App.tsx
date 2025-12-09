@@ -357,7 +357,7 @@ function App() {
               <button onClick={handleMasterPasswordSubmit} className="auth-btn">
                 {localStorage.getItem('passgen-master-hash') ? 'Unlock Vault' : 'Set Master Password'}
               </button>
-              {localStorage.getItem('passgen-passkey-credential') && window.isSecureContext && ((import.meta as any)?.env?.DEV === true) && (
+              {localStorage.getItem('passgen-passkey-credential') && (
                 <button onClick={handlePasskeyUnlock} className="auth-btn auth-btn-secondary">
                   Unlock with Passkey
                 </button>

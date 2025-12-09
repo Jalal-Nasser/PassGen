@@ -11,7 +11,8 @@ import * as path from 'path'
 
 let mainWindow: BrowserWindow | null = null;
 let sessionToken: string | null = null;
-let server: http.Server | null = null;
+let appServer: http.Server | null = null;  // HTTP server for serving the app (production only)
+let bridgeServer: http.Server | null = null;  // HTTP server for extension bridge (all modes)
 
 function resolveIconPath() {
   try {
@@ -245,7 +246,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: true
+      webSecurity: true,
+      partition: 'persist:passgen'
     }
   })
   mainWindow.center()
@@ -258,75 +260,8 @@ function createWindow() {
     mainWindow.loadURL(devServerUrl)
   } else {
     // Production: use local HTTP server to enable WebAuthn (secure context)
-    // This PRESERVES localStorage properly unlike file:// protocol
-    const distPath = path.join(__dirname, '../dist')
-    const fs = require('fs')
-    
-    // Create HTTP server if not already created
-    if (!server) {
-      server = http.createServer((req, res) => {
-        // Parse URL
-        let urlPath = req.url || '/'
-        if (urlPath.startsWith('?')) urlPath = '/'
-        
-        // Default to index.html for root
-        let filePath = urlPath === '/' ? path.join(distPath, 'index.html') : path.join(distPath, urlPath)
-        
-        // Security: prevent directory traversal
-        const realPath = require('path').resolve(filePath)
-        if (!realPath.startsWith(require('path').resolve(distPath))) {
-          res.writeHead(403, { 'Content-Type': 'text/plain' })
-          res.end('403 Forbidden')
-          return
-        }
-        
-        // Try to serve the file
-        fs.stat(filePath, (err: any, stats: any) => {
-          if (err || !stats.isFile()) {
-            // File not found, serve index.html for SPA routing
-            fs.readFile(path.join(distPath, 'index.html'), (err: any, content: any) => {
-              if (!err) {
-                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-                res.end(content)
-              } else {
-                res.writeHead(404, { 'Content-Type': 'text/plain' })
-                res.end('404 Not Found')
-              }
-            })
-            return
-          }
-          
-          // File exists, serve it with appropriate MIME type
-          const ext = path.extname(filePath).toLowerCase()
-          const mimeTypes: {[key: string]: string} = {
-            '.html': 'text/html; charset=utf-8',
-            '.js': 'application/javascript; charset=utf-8',
-            '.css': 'text/css; charset=utf-8',
-            '.json': 'application/json',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.svg': 'image/svg+xml',
-            '.ico': 'image/x-icon',
-            '.woff': 'font/woff',
-            '.woff2': 'font/woff2',
-            '.ttf': 'font/ttf'
-          }
-          
-          const contentType = mimeTypes[ext] || 'application/octet-stream'
-          res.writeHead(200, { 'Content-Type': contentType })
-          fs.createReadStream(filePath).pipe(res)
-        })
-      })
-      
-      // Listen on a high port number to avoid conflicts
-      server.listen(27649, '127.0.0.1', () => {
-        console.log('Local server running on http://127.0.0.1:27649')
-        if (mainWindow) mainWindow.loadURL('http://127.0.0.1:27649')
-      })
-    } else {
-      mainWindow.loadURL('http://127.0.0.1:27649')
-    }
+    // appServer should be started in app.whenReady() before creating window
+    mainWindow.loadURL('http://127.0.0.1:27649')
   }
 
   mainWindow.on('closed', () => {
@@ -366,7 +301,16 @@ if (!gotTheLock) {
     }
   });
 
+  // Configure persistent session for localStorage preservation
+  // Note: partition: 'persist:passgen' in BrowserWindow webPreferences
+  // automatically persists localStorage to disk in app userData directory
+
   app.whenReady().then(() => {
+    // Start app server in production before creating window
+    const isDev = process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL
+    if (!isDev) {
+      startAppServer()
+    }
     createWindow()
     setApplicationMenu()
     // Initial update check and periodic checks every 6 hours
@@ -579,10 +523,82 @@ ipcMain.on('premium:changed', () => {
   setApplicationMenu()
 })
 
+function startAppServer() {
+  try {
+    if (appServer) return
+    
+    const distPath = path.join(__dirname, '../dist')
+    const fs = require('fs')
+    
+    appServer = http.createServer((req, res) => {
+      // Parse URL
+      let urlPath = req.url || '/'
+      if (urlPath.startsWith('?')) urlPath = '/'
+      
+      // Default to index.html for root
+      let filePath = urlPath === '/' ? path.join(distPath, 'index.html') : path.join(distPath, urlPath)
+      
+      // Security: prevent directory traversal
+      const realPath = require('path').resolve(filePath)
+      if (!realPath.startsWith(require('path').resolve(distPath))) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' })
+        res.end('403 Forbidden')
+        return
+      }
+      
+      // Try to serve the file
+      fs.stat(filePath, (err: any, stats: any) => {
+        if (err || !stats.isFile()) {
+          // File not found, serve index.html for SPA routing
+          fs.readFile(path.join(distPath, 'index.html'), (err: any, content: any) => {
+            if (!err) {
+              res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+              res.end(content)
+            } else {
+              res.writeHead(404, { 'Content-Type': 'text/plain' })
+              res.end('404 Not Found')
+            }
+          })
+          return
+        }
+        
+        // File exists, serve it with appropriate MIME type
+        const ext = path.extname(filePath).toLowerCase()
+        const mimeTypes: {[key: string]: string} = {
+          '.html': 'text/html; charset=utf-8',
+          '.js': 'application/javascript; charset=utf-8',
+          '.css': 'text/css; charset=utf-8',
+          '.json': 'application/json',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.svg': 'image/svg+xml',
+          '.ico': 'image/x-icon',
+          '.woff': 'font/woff',
+          '.woff2': 'font/woff2',
+          '.ttf': 'font/ttf'
+        }
+        
+        const contentType = mimeTypes[ext] || 'application/octet-stream'
+        res.writeHead(200, { 'Content-Type': contentType })
+        fs.createReadStream(filePath).pipe(res)
+      })
+    })
+    
+    appServer.listen(27649, '127.0.0.1', () => {
+      console.log('[APP SERVER] Listening on http://127.0.0.1:27649')
+      console.log('[APP SERVER] userData path:', app.getPath('userData'))
+      console.log('[APP SERVER] Partition: persist:passgen (localStorage will persist to:', path.join(app.getPath('userData'), 'Partitions/persist:passgen'), ')')
+    })
+  } catch (e) {
+    console.error('[APP SERVER] Failed to start:', e)
+  }
+}
+
 function startBridgeServer() {
   try {
-    if (server) return
-    server = http.createServer(async (req, res) => {
+    if (bridgeServer) return
+    bridgeServer = http.createServer(async (req, res) => {
       try {
         const url = new URL(req.url || '/', 'http://127.0.0.1')
         const origin = req.headers['origin'] as string | undefined
@@ -649,15 +665,15 @@ function startBridgeServer() {
         res.end('Server Error')
       }
     })
-    server.listen(17865, '127.0.0.1')
+    bridgeServer.listen(17865, '127.0.0.1')
   } catch (e) {
     console.error('Bridge server failed to start:', e)
   }
 }
 
 function stopBridgeServer() {
-  try { server?.close() } catch {}
-  server = null
+  try { bridgeServer?.close() } catch {}
+  bridgeServer = null
 }
 
 async function getCandidateNames(domain: string): Promise<Array<{ id: string; name: string }>> {

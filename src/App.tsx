@@ -8,6 +8,7 @@ import UpgradeModal from './components/UpgradeModal'
 import TermsModal from './components/TermsModal'
 import StorageSetup from './components/StorageSetup'
 import PasswordVault from './components/PasswordVault'
+import { CustomTitleBar } from './components/CustomTitleBar'
 import { StorageManager } from './services/storageManager'
 import { ConfigStore } from './services/configStore'
 // import { StorageConfig } from './services/configStore'
@@ -320,6 +321,7 @@ function App() {
 
   return (
     <div className="app">
+      <CustomTitleBar />
       <div className="container">
         <div className="app-header">
           <button className="link-btn" onClick={handleResetApp} title="Clear local data and restart wizard">
@@ -346,9 +348,9 @@ function App() {
               <button onClick={handleMasterPasswordSubmit} className="auth-btn">
                 {localStorage.getItem('passgen-master-hash') ? 'Unlock Vault' : 'Set Master Password'}
               </button>
-              {localStorage.getItem('passgen-passkey-credential') && (
+              {((import.meta as any)?.env?.DEV === true) && localStorage.getItem('passgen-passkey-credential') && (
                 <button onClick={handlePasskeyUnlock} className="auth-btn auth-btn-secondary">
-                  Unlock with Passkey
+                  Unlock with Passkey (Dev Only)
                 </button>
               )}
               <p className="auth-note">

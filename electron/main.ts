@@ -16,6 +16,7 @@ let bridgeServer: http.Server | null = null;  // HTTP server for extension bridg
 const APP_SERVER_PORT_BASE = 27649;
 let appServerPort = APP_SERVER_PORT_BASE;
 const APP_SERVER_MAX_RETRIES = 5;
+let useFileFallback = false;
 
 function resolveIconPath() {
   try {
@@ -264,7 +265,13 @@ function createWindow() {
   } else {
     // Production: use local HTTP server to enable WebAuthn (secure context)
     // appServer should be started in app.whenReady() before creating window
-    mainWindow.loadURL(`http://127.0.0.1:${appServerPort}`)
+    if (useFileFallback) {
+      const distIndex = path.join(__dirname, '../dist/index.html')
+      console.warn('[WINDOW] Using file:// fallback because app server failed to start')
+      mainWindow.loadFile(distIndex)
+    } else {
+      mainWindow.loadURL(`http://127.0.0.1:${appServerPort}`)
+    }
   }
 
   mainWindow.on('closed', () => {
@@ -341,7 +348,12 @@ if (!gotTheLock) {
     // Start app server in production before creating window
     const isDev = process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL
     if (!isDev) {
-      await startAppServer()
+      try {
+        await startAppServer()
+      } catch (err) {
+        console.error('[APP SERVER] Failed to start, falling back to file://', err)
+        useFileFallback = true
+      }
     }
     createWindow()
     setApplicationMenu()

@@ -45,6 +45,7 @@ function App() {
   const [showStorageSetup, setShowStorageSetup] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [passwordHint, setPasswordHint] = useState('')
+  const [passwordHintInput, setPasswordHintInput] = useState('')
 
   useEffect(() => {
     const openUpgrade = () => setShowUpgrade(true)
@@ -119,6 +120,11 @@ function App() {
         return
       }
       cfg.setMasterPasswordHash(inputHash)
+      // Save password hint if provided
+      if (passwordHintInput.trim()) {
+        localStorage.setItem('passgen-password-hint', passwordHintInput.trim())
+        setPasswordHint(passwordHintInput.trim())
+      }
     } else if (existingHash !== inputHash) {
       alert('Incorrect master password. Please try again.')
       return
@@ -386,6 +392,15 @@ function App() {
                   )}
                 </button>
               </div>
+              {!localStorage.getItem('passgen-master-hash') && (
+                <input
+                  type="text"
+                  value={passwordHintInput}
+                  onChange={(e) => setPasswordHintInput(e.target.value)}
+                  placeholder="Password hint (optional)"
+                  className="auth-input hint-input"
+                />
+              )}
               {passwordHint && localStorage.getItem('passgen-master-hash') && (
                 <p className="password-hint">💡 Hint: {passwordHint}</p>
               )}

@@ -157,6 +157,10 @@
   transition: all 0.2s;
 }
 
+.auth-input.hint-input {
+  padding: 14px 16px;
+}
+
 .auth-input:focus {
   outline: none;
   border-color: #667eea;

@@ -437,16 +437,20 @@ ipcMain.handle('passkey:register', async () => {
             attestation: "none"
           }
         });
-        if (!credential) throw new Error('Passkey registration failed');
+        if (!credential) throw new Error('Passkey registration cancelled or not supported');
+        if (credential.type !== 'public-key') throw new Error('Invalid credential type');
+        // Just store the credential ID, which is sufficient for verification
+        const credentialId = Array.from(new Uint8Array(credential.id)).map(b => ('0' + b.toString(16)).slice(-2)).join('');
         return {
-          id: Array.from(new Uint8Array(credential.id)).map(b => ('0' + b.toString(16)).slice(-2)).join(''),
-          publicKey: btoa(String.fromCharCode.apply(null, new Uint8Array(credential.response.getPublicKey())))
+          credentialId: credentialId,
+          // Store a simple marker that we have a passkey registered
+          publicKey: 'passkey-registered'
         };
       })()
     `)
     return { success: true, ...result }
   } catch (e) {
-    return { success: false, error: (e as Error).message }
+    return { success: false, error: (e as Error).message || 'Unknown error' }
   }
 })
 

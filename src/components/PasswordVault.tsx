@@ -293,7 +293,7 @@ function PasswordVault({ storageManager, onGenerateNew }: PasswordVaultProps) {
       }
       const result = await api.registerPasskey()
       if (result.success) {
-        store.setPasskeyCredential(result.id, result.publicKey)
+        store.setPasskeyCredential(result.credentialId, result.publicKey)
         alert('Passkey setup successful! Next login, you can use your biometric to unlock.')
       } else {
         alert('Passkey setup failed: ' + (result.error || 'Unknown error'))

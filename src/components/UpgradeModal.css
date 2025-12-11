@@ -1,7 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,38 +17,396 @@
   max-width: 560px;
   width: 90%;
   padding: 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
 }
 
-.modal h2 { color: #667eea; margin: 0 0 6px; text-align: center; }
-.modal-sub { text-align: center; color: #666; margin-bottom: 14px; }
-
+.modal h2 { color: #111827; margin: 0 0 6px; text-align: center; }
+.modal-sub { text-align: center; color: #4b5563; margin-bottom: 14px; }
 .benefits { margin: 0 0 14px 18px; color: #555; }
 .benefits.compact { margin: 8px auto 16px; max-width: 440px; }
 
-.pay-section { display: none; }
-.pay-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
-.card { border: 1px solid #e6e6f8; border-radius: 12px; padding: 14px; }
-.pay-card, .qr-card { min-height: 260px; display:grid; align-content:center; justify-items:center; }
-.card-title { font-weight: 800; color:#444; margin-bottom: 10px; text-align:center; }
-.pay-form { display:inline-grid; justify-items:center; align-content:start; gap:8px; width:100%; }
-.pp-DL5XTW4XNFAZ2{ text-align:center; border:none; border-radius:0.25rem; min-width:11.625rem; padding:0 2rem; height:2rem; font-weight:bold; background-color:#FFD140; color:#000000; font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.875rem; line-height:1.125rem; cursor:pointer; }
-.cards { height: 20px; }
-.pay-powered { font-size: 0.75rem; display:flex; align-items:center; gap:6px; }
-.paypal-wordmark { height: 14px; }
-.qr-wrap { border: 2px dashed #e0e0ff; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:10px; height: 200px; overflow:hidden; background:#fbfbff; }
-.qr-wrap img { max-height: 100%; max-width: 100%; }
-.hint { color:#888; display:block; margin-top:8px; text-align:center; }
-
-@media (max-width: 560px){
-  .pay-grid { grid-template-columns: 1fr; }
+.upgrade-modal {
+  position: relative;
+  overflow: hidden;
+  max-width: 740px;
+  width: min(92vw, 740px);
+  max-height: 86vh;
+  padding: 12px;
+  background: linear-gradient(145deg, #5d7cfa 0%, #7e5ce0 45%, #8f3fbf 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #eef2ff;
+  font-family: 'Space Grotesk', 'Manrope', 'DM Sans', 'Segoe UI', sans-serif;
+  box-shadow: 0 22px 70px rgba(69, 39, 160, 0.25);
+  overflow-y: auto;
 }
 
-.activation-panel { margin-top: 12px; display:grid; gap:10px; }
-.email-capture label { display:block; font-size:0.9rem; color:#555; margin-bottom:4px; }
-.email-capture input { width:100%; padding:10px; border:2px solid #e0e0ff; border-radius:8px; }
-.activation-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.upgrade-modal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 40% 32%, rgba(255,255,255,0.16), transparent 32%),
+    radial-gradient(circle at 80% 10%, rgba(56, 189, 248, 0.14), transparent 24%);
+  opacity: 1;
+}
+
+.upgrade-modal > * { position: relative; z-index: 1; }
+
+.upgrade-hero {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.12);
+}
+
+.upgrade-hero.success {
+  text-align: center;
+  gap: 10px;
+}
+
+.upgrade-modal h2 {
+  color: #0f172a;
+  text-align: left;
+  margin: 0 0 2px;
+  font-size: 1.15rem;
+}
+
+.upgrade-modal .modal-sub {
+  text-align: left;
+  color: #334155;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #4338ca;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+  width: fit-content;
+}
+
+.price-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(120deg, #eef2ff, #dbeafe);
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 6px 10px;
+  color: #0f172a;
+  font-weight: 800;
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.price-badge small {
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f4f7ff;
+}
+
+.section-sub {
+  color: #dfe5ff;
+  opacity: 0.95;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.pay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.card {
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.pay-card {
+  min-height: 180px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+}
+
+.pay-card.glass {
+  backdrop-filter: blur(4px);
+}
+
+.pay-card.paypal {
+  background: linear-gradient(135deg, #ecfeff 0%, #ffffff 90%);
+}
+
+.pay-card.crypto {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 90%);
+}
+
+.pay-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-logo {
+  height: 26px;
+  object-fit: contain;
+}
+
+.brand-sub {
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  color: #f8fbff;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.pill.outline {
+  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.18);
+  color: #ffffff;
+}
+
+.pill.accent {
+  background: rgba(220, 252, 231, 0.5);
+  color: #0f5132;
+}
+
+.crypto-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 10px;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.qr-wrap {
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  height: 150px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px dashed #e0e7ff;
+}
+
+.qr-wrap.elevated {
+  box-shadow: inset 0 0 0 1px #e5e7eb, 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.qr-wrap img {
+  max-height: 100%;
+  max-width: 100%;
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px;
+}
+
+.pay-note {
+  color: #1f2937;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.address-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.address-row code {
+  font-size: 0.85rem;
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.payment-section { margin-top: 8px; }
+
+.activation-card {
+  margin-top: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.activation-card .section-title {
+  color: #0f172a;
+}
+
+.activation-card .section-sub {
+  color: #334155;
+  opacity: 0.9;
+}
+
+.activation-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.email-capture label {
+  display: block;
+  font-size: 0.88rem;
+  color: #0f172a;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.email-capture input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.email-capture input::placeholder {
+  color: #94a3b8;
+}
+
+.email-capture.subtle input {
+  opacity: 0.9;
+}
+
+.input-with-button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.activation-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
 
 .actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
-.btn-primary { padding: 10px 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; }
-.btn-secondary { padding: 10px 16px; background: #fff; color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-weight: 700; }
+
+.upgrade-modal .btn-primary {
+  padding: 10px 14px;
+  background: linear-gradient(120deg, #2563eb, #0ea5e9);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
+}
+
+.upgrade-modal .btn-secondary {
+  padding: 10px 12px;
+  background: #f8fafc;
+  color: #1d4ed8;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ghost-btn,
+.upgrade-modal .btn-secondary.ghost {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ghost-btn:hover,
+.upgrade-modal .btn-secondary:hover,
+.upgrade-modal .btn-primary:hover {
+  transform: translateY(-1px);
+  transition: transform 0.18s ease;
+}
+
+.dev-hint {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.dev-secret {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 10px;
+  color: #334155;
+  display: grid;
+  gap: 6px;
+}
+
+.hint { color:#888; display:block; margin-top:8px; text-align:center; }
+
+@media (max-width: 720px){
+  .pay-grid { grid-template-columns: 1fr; }
+  .modal { width: 94%; }
+  .section-heading { flex-direction: column; align-items: flex-start; }
+  .address-row { grid-template-columns: 1fr; }
+  .input-with-button { grid-template-columns: 1fr; }
+  .upgrade-modal h2 { text-align: left; }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ConfigStore } from '../services/configStore'
 import { copyText } from '../services/clipboard'
 import './UpgradeModal.css'
@@ -8,26 +8,18 @@ interface UpgradeModalProps {
   onClose: () => void
 }
 
-const PREMIUM_PRICE = '$3.99/mo'
+const PREMIUM_PRICE = '$15 / 6 months'
+const CRYPTO_ADDRESS_USDT_BSC = '0x39A31EaE0026D10D801859aF75691119d2cD367C'
+const CRYPTO_QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=340x340&data=${encodeURIComponent(CRYPTO_ADDRESS_USDT_BSC)}`
+const PAYPAL_QR_PATH = 'qr.png' // Provided PayPal QR code asset (relative for packaged apps)
 
 export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
   const store = new ConfigStore()
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [installId, setInstallId] = useState<string>('')
   const showTestVerify = ((import.meta as any)?.env?.DEV as boolean) === true
 
   useEffect(() => {
-    // Attempt to render PayPal buttons if SDK is present
-    // The user provided container id
-    if (open && (window as any).paypal && document.getElementById('paypal-container-DL5XTW4XNFAZ2')) {
-      try {
-        // If PayPal SDK is loaded externally, buttons may auto-render to this container
-      } catch {}
-    }
     if (open) {
-      const stored = localStorage.getItem('passgen-qr')
-      if (stored) setQrDataUrl(stored)
       setInstallId(store.getInstallId())
     }
   }, [open])
@@ -75,6 +67,24 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
     }
   }
 
+  const copyInstallId = async () => {
+    try {
+      const ok = await copyText(installId)
+      if (!ok) alert('Failed to copy Install ID')
+    } catch {
+      alert('Failed to copy Install ID')
+    }
+  }
+
+  const copyCryptoAddress = async () => {
+    try {
+      const ok = await copyText(CRYPTO_ADDRESS_USDT_BSC)
+      if (!ok) alert('Failed to copy address')
+    } catch {
+      alert('Failed to copy address')
+    }
+  }
+
   const testVerify = () => {
     if (!code || !userEmail) { setTestResult('Enter email and code'); return }
     const ok = store.verifyActivationCode(code, userEmail)
@@ -94,10 +104,13 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
   if (store.isPremium()) {
     return (
       <div className="modal-backdrop" onClick={onClose}>
-        <div className="modal clean" onClick={(e) => e.stopPropagation()}>
-          <h2>🎉 You are already a Premium user!</h2>
-          <p>Enjoy unlimited passwords and cloud sync.</p>
-          <button className="btn-primary" onClick={onClose}>Close</button>
+        <div className="modal upgrade-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="upgrade-hero success">
+            <div className="eyebrow">Premium active</div>
+            <h2>🎉 You are already a Premium user!</h2>
+            <p>Enjoy unlimited passwords and cloud sync.</p>
+            <button className="btn-primary" onClick={onClose}>Close</button>
+          </div>
         </div>
       </div>
     )
@@ -105,86 +118,108 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal clean" onClick={(e) => e.stopPropagation()}>
-        <h2>Unlock Premium</h2>
-        <p className="modal-sub">Get unlimited passwords and cloud sync for {PREMIUM_PRICE}</p>
-
-        <ul className="benefits compact">
-          <li>Unlimited entries (free includes 4)</li>
-          <li>Cloud sync: Google Drive, AWS S3, DigitalOcean</li>
-        </ul>
-
-        <div className="pay-grid">
-          <div className="card pay-card">
-            <div className="card-title">PayPal</div>
-            <form
-              action="https://www.paypal.com/ncp/payment/DL5XTW4XNFAZ2"
-              method="post"
-              target="_blank"
-              className="pay-form"
-            >
-              <input className="pp-DL5XTW4XNFAZ2" type="submit" value="Buy Now" />
-              <img
-                src="https://www.paypalobjects.com/images/Debit_Credit_APM.svg"
-                alt="cards"
-                className="cards"
-              />
-              <section className="pay-powered">
-                <span>Powered by</span>
-                <img
-                  src="https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-wordmark-color.svg"
-                  alt="paypal"
-                  className="paypal-wordmark"
-                />
-              </section>
-            </form>
-          </div>
-
-          <div className="card qr-card">
-            <div className="card-title">Scan to pay on phone</div>
-            <div className="qr-wrap" onClick={()=>fileInputRef.current?.click()} title="Click to upload your QR image">
-              <img
-                src={qrDataUrl || './qr.png'}
-                alt="Payment QR"
-                onError={(e:any)=>{ e.currentTarget.style.opacity = 0.4 }}
-              />
-            </div>
-            <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={(ev)=>{
-              const file = ev.target.files?.[0]
-              if (!file) return
-              const fr = new FileReader()
-              fr.onload = () => { const data = String(fr.result); localStorage.setItem('passgen-qr', data); setQrDataUrl(data) }
-              fr.readAsDataURL(file)
-            }} />
-            <small className="hint">Click to upload a different QR (optional)</small>
+      <div className="modal upgrade-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="upgrade-hero">
+          <div className="eyebrow">Secure upgrade</div>
+          <h2>Unlock Premium</h2>
+          <p className="modal-sub">Unlimited vault entries and cloud sync for {PREMIUM_PRICE}</p>
+          <div className="price-badge">
+            <span>{PREMIUM_PRICE}</span>
+            <small>6 months of sync + updates</small>
           </div>
         </div>
 
-        <div className="activation-panel">
-          <div className="email-capture" style={{opacity:0.8}}>
-            <label>Install ID (for support):</label>
-            <div style={{display:'flex', gap:8, alignItems:'center'}}>
-              <input type="text" value={installId} readOnly style={{flex:1}} />
-              <button className="btn-secondary" onClick={async ()=>{ try { const ok = await copyText(installId); if (!ok) alert('Failed to copy'); } catch { alert('Failed to copy') } }}>Copy</button>
+        <div className="payment-section">
+          <div className="section-heading">
+            <span className="pill">Step 1</span>
+            <div>
+              <div className="section-title">Pay using the QR that suits you</div>
+              <div className="section-sub">Scan the QR with your phone to complete payment.</div>
             </div>
           </div>
-          <div className="email-capture">
-            <label>Your Email (for activation):</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={userEmail}
-              onChange={(e)=>setUserEmail(e.target.value)}
-            />
+          <div className="pay-grid modern">
+            <div className="card pay-card glass paypal">
+              <div className="pay-card__header">
+                <div className="brand">
+                  <img
+                    src="https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-wordmark-color.svg"
+                    alt="PayPal"
+                    className="brand-logo"
+                  />
+                  <span className="brand-sub">Scan with your PayPal app</span>
+                </div>
+                <span className="pill outline">Instant</span>
+              </div>
+              <div className="qr-wrap elevated">
+                <img
+                  src={PAYPAL_QR_PATH}
+                  alt="PayPal QR"
+                  onError={(e:any)=>{ e.currentTarget.style.opacity = 0.4 }}
+                />
+              </div>
+              <div className="pay-note">
+                Scan with your phone to pay.
+              </div>
+            </div>
+
+            <div className="card pay-card glass crypto">
+              <div className="pay-card__header">
+                <div className="brand">
+                  <div className="crypto-badge">USDT · BSC</div>
+                  <span className="brand-sub">Send 15 USDT (BEP20)</span>
+                </div>
+                <button className="ghost-btn" onClick={copyCryptoAddress}>Copy address</button>
+              </div>
+              <div className="qr-wrap elevated">
+                <img
+                  src={CRYPTO_QR_URL}
+                  alt="USDT BSC QR"
+                />
+              </div>
+              <div className="pay-note">
+                <div className="address-row">
+                  <code>{CRYPTO_ADDRESS_USDT_BSC}</code>
+                  <button className="ghost-btn" onClick={copyCryptoAddress}>Copy</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="email-capture">
-            <label>Activation Code:</label>
-            <input
-              type="text"
-              placeholder="Enter code from seller"
-              value={code}
-              onChange={(e)=>setCode(e.target.value)}
-            />
+        </div>
+
+        <div className="activation-card">
+          <div className="section-heading">
+            <span className="pill accent">Step 2</span>
+            <div>
+              <div className="section-title">Request activation after payment</div>
+              <div className="section-sub">Share your email, then paste the code you get back to unlock Premium.</div>
+            </div>
+          </div>
+          <div className="activation-fields">
+            <div className="email-capture subtle">
+              <label>Install ID (for support)</label>
+              <div className="input-with-button">
+                <input type="text" value={installId} readOnly />
+                <button className="ghost-btn" onClick={copyInstallId}>Copy</button>
+              </div>
+            </div>
+            <div className="email-capture">
+              <label>Your Email (for activation)</label>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={userEmail}
+                onChange={(e)=>setUserEmail(e.target.value)}
+              />
+            </div>
+            <div className="email-capture">
+              <label>Activation Code</label>
+              <input
+                type="text"
+                placeholder="Enter code from seller"
+                value={code}
+                onChange={(e)=>setCode(e.target.value)}
+              />
+            </div>
           </div>
           <div className="activation-actions">
             <button className="btn-secondary" disabled={sending || sent} onClick={requestActivation}>
@@ -197,21 +232,20 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
                 <button className="btn-secondary" onClick={generateCode}>Generate Code (dev)</button>
               </>
             )}
-            <button className="btn-secondary" onClick={onClose}>Close</button>
+            <button className="btn-secondary ghost" onClick={onClose}>Close</button>
           </div>
           {showTestVerify && testResult && (
-            <div style={{marginTop:8, opacity:0.8}}>{testResult}</div>
+            <div className="dev-hint">{testResult}</div>
           )}
           {showTestVerify && (
-            <div style={{marginTop:12, opacity:0.9}}>
-              <label>Seller Secret (dev only, stored locally):</label>
-              <div style={{display:'flex', gap:8}}>
+            <div className="dev-secret">
+              <label>Seller Secret (dev only, stored locally)</label>
+              <div className="input-with-button">
                 <input
                   type="text"
                   placeholder="override secret for testing"
                   value={devSecret}
                   onChange={(e)=>setDevSecret(e.target.value)}
-                  style={{flex:1}}
                 />
                 <button className="btn-secondary" onClick={()=>{ store.setSellerSecretForDebug(devSecret); setTestResult('Secret updated locally'); }}>Save</button>
               </div>

@@ -76,12 +76,39 @@ export class ConfigStore {
     return this.computeActivationCode(email) === code.trim().toUpperCase()
   }
   isPremium(): boolean {
-    return localStorage.getItem('passgen-premium') === 'true'
+    const active = localStorage.getItem('passgen-premium') === 'true'
+    if (!active) return false
+
+    const expiry = this.getPremiumExpiry()
+    if (expiry && Date.now() > expiry.getTime()) {
+      this.setPremium(false)
+      return false
+    }
+    return true
   }
 
-  setPremium(value: boolean): void {
+  setPremium(value: boolean, expiresAt?: Date): void {
     localStorage.setItem('passgen-premium', value ? 'true' : 'false')
+    if (value) {
+      const expiry = expiresAt || this.computeDefaultExpiry()
+      localStorage.setItem('passgen-premium-expiry', expiry.toISOString())
+    } else {
+      localStorage.removeItem('passgen-premium-expiry')
+    }
     window.dispatchEvent(new Event('premium-changed'))
+  }
+
+  getPremiumExpiry(): Date | null {
+    const raw = localStorage.getItem('passgen-premium-expiry')
+    if (!raw) return null
+    const parsed = new Date(raw)
+    return isNaN(parsed.getTime()) ? null : parsed
+  }
+
+  private computeDefaultExpiry(): Date {
+    const now = new Date()
+    now.setMonth(now.getMonth() + 6)
+    return now
   }
 
   getStorageConfig(): StorageConfig | null {
@@ -122,6 +149,7 @@ export class ConfigStore {
     localStorage.removeItem('passgen-onboarding-complete');
     localStorage.removeItem('passgen-onboarding-completed');
     localStorage.removeItem('passgen-premium');
+    localStorage.removeItem('passgen-premium-expiry');
   }
 
   getGoogleDriveTokens(): any {

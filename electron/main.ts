@@ -70,6 +70,23 @@ function setApplicationMenu() {
           label: 'Help',
           submenu: [
             {
+              label: 'Documentation',
+              click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+            },
+            {
+              label: 'Keyboard Shortcuts',
+              click: () => {
+                dialog.showMessageBox({
+                  type: 'info',
+                  title: 'Keyboard Shortcuts',
+                  message: 'PassGen Keyboard Shortcuts',
+                  detail: 'Ctrl+C - Copy password\nCtrl+L - Lock vault\nCtrl+N - New password entry\nCtrl+F - Search vault\nCtrl+Q - Quit application\nF5 - Refresh\nF11 - Toggle fullscreen',
+                  buttons: ['OK']
+                })
+              }
+            },
+            { type: 'separator' },
+            {
               label: 'Check for Updates',
               click: () => { checkForUpdates(false) }
             },
@@ -80,16 +97,22 @@ function setApplicationMenu() {
                 dialog.showMessageBox({
                   type: 'info',
                   title: 'About PassGen',
-                  message: `PassGen\nVersion ${version}`,
-                  detail: 'A secure password generator and vault.\nDeveloper: JalalNasser\nPremium: $3.99/mo for cloud sync and unlimited items.',
-                  buttons: ['OK', 'Downloads', 'Report Issue'],
+                  message: `PassGen v${version}`,
+                    detail: 'A secure password generator and vault.\n\nDeveloper: JalalNasser\nLicense: MIT\n\nFeatures:\n• Generate secure passwords\n• Encrypt and store passwords\n• Cloud sync (Premium)\n• Browser extension support\n\nPremium: $15 / 6 months for cloud sync and unlimited items.',
+                  buttons: ['OK', 'Website', 'GitHub', 'Report Issue'],
                   defaultId: 0,
                   cancelId: 0
                 }).then(({ response }) => {
-                  if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/releases')
-                  if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
+                  if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+                  if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+                  if (response === 3) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
                 })
               }
+            },
+            { type: 'separator' },
+            {
+              label: 'Terms (EULA)',
+              click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/blob/main/LICENSE.txt')
             }
           ]
         }
@@ -145,6 +168,23 @@ function buildDefaultMenu() {
       label: 'Help',
       submenu: [
         {
+          label: 'Documentation',
+          click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+        },
+        {
+          label: 'Keyboard Shortcuts',
+          click: () => {
+            dialog.showMessageBox({
+              type: 'info',
+              title: 'Keyboard Shortcuts',
+              message: 'PassGen Keyboard Shortcuts',
+              detail: 'Ctrl+C - Copy password\nCtrl+L - Lock vault\nCtrl+N - New password entry\nCtrl+F - Search vault\nCtrl+Q - Quit application\nF5 - Refresh\nF11 - Toggle fullscreen',
+              buttons: ['OK']
+            })
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Check for Updates',
           click: () => { checkForUpdates(false) }
         },
@@ -155,14 +195,15 @@ function buildDefaultMenu() {
             dialog.showMessageBox({
               type: 'info',
               title: 'About PassGen',
-              message: `PassGen\nVersion ${version}`,
-              detail: 'A secure password generator and vault.\nDeveloper: JalalNasser\nPremium: $3.99/mo for cloud sync and unlimited items.',
-              buttons: ['OK', 'Downloads', 'Report Issue'],
+              message: `PassGen v${version}`,
+              detail: 'A secure password generator and vault.\n\nDeveloper: JalalNasser\nLicense: MIT\n\nFeatures:\n• Generate secure passwords\n• Encrypt and store passwords\n• Cloud sync (Premium)\n• Browser extension support\n\nPremium: $3.99/mo for cloud sync and unlimited items.',
+              buttons: ['OK', 'Website', 'GitHub', 'Report Issue'],
               defaultId: 0,
               cancelId: 0
             }).then(({ response }) => {
-              if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/releases')
-              if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
+              if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+              if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+              if (response === 3) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
             })
           }
         },
@@ -253,12 +294,12 @@ function createWindow() {
   // In development, use the Vite dev server
   const isDev = process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL
 
-  if (isDev) {
+  const forceFileInDev = process.env.PASSGEN_USE_FILE_DEV === 'true'
+  if (isDev && !forceFileInDev) {
     const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'
     mainWindow.loadURL(devServerUrl)
   } else {
-    // Production: load from dist folder using file:// protocol
-    // This preserves localStorage and works reliably
+    // file:// load (used in production and when PASSGEN_USE_FILE_DEV=true) to share the same origin/storage
     const distIndex = path.join(__dirname, '../dist/index.html')
     mainWindow.loadFile(distIndex)
   }

@@ -25,6 +25,49 @@ function resolveIconPath() {
   }
 }
 
+const HELP_DOCS_URL = 'https://github.com/Jalal-Nasser/PassGen-Releases'
+const HELP_ISSUES_URL = 'https://github.com/Jalal-Nasser/PassGen-Releases/issues'
+const HELP_TERMS_URL = 'https://github.com/Jalal-Nasser/PassGen-Releases/blob/main/LICENSE.txt'
+const KEYBOARD_SHORTCUTS_DETAIL =
+  'Ctrl+C - Copy password\nCtrl+L - Lock vault\nCtrl+N - New password entry\nCtrl+F - Search vault\nCtrl+Q - Quit application\nF5 - Refresh\nF11 - Toggle fullscreen'
+const ABOUT_DETAIL =
+  'A secure password generator and vault.\n\nDeveloper: JalalNasser\nLicense: MIT\n\nFeatures:\n• Generate secure passwords\n• Encrypt and store passwords\n• Cloud sync (Premium)\n• Browser extension support\n\nPremium: $15 / 6 months for cloud sync and unlimited items.'
+
+function openDocumentation() {
+  shell.openExternal(HELP_DOCS_URL)
+}
+
+function openTerms() {
+  shell.openExternal(HELP_TERMS_URL)
+}
+
+function showKeyboardShortcuts() {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Keyboard Shortcuts',
+    message: 'PassGen Keyboard Shortcuts',
+    detail: KEYBOARD_SHORTCUTS_DETAIL,
+    buttons: ['OK']
+  })
+}
+
+function showAboutDialog() {
+  const version = app.getVersion()
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'About PassGen',
+    message: `PassGen v${version}`,
+    detail: ABOUT_DETAIL,
+    buttons: ['OK', 'Website', 'GitHub', 'Report Issue'],
+    defaultId: 0,
+    cancelId: 0
+  }).then(({ response }) => {
+    if (response === 1) shell.openExternal(HELP_DOCS_URL)
+    if (response === 2) shell.openExternal(HELP_DOCS_URL)
+    if (response === 3) shell.openExternal(HELP_ISSUES_URL)
+  })
+}
+
 function setApplicationMenu() {
   // Query localStorage to check premium status
   let isPremium = false
@@ -71,19 +114,11 @@ function setApplicationMenu() {
           submenu: [
             {
               label: 'Documentation',
-              click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+              click: openDocumentation
             },
             {
               label: 'Keyboard Shortcuts',
-              click: () => {
-                dialog.showMessageBox({
-                  type: 'info',
-                  title: 'Keyboard Shortcuts',
-                  message: 'PassGen Keyboard Shortcuts',
-                  detail: 'Ctrl+C - Copy password\nCtrl+L - Lock vault\nCtrl+N - New password entry\nCtrl+F - Search vault\nCtrl+Q - Quit application\nF5 - Refresh\nF11 - Toggle fullscreen',
-                  buttons: ['OK']
-                })
-              }
+              click: showKeyboardShortcuts
             },
             { type: 'separator' },
             {
@@ -92,27 +127,12 @@ function setApplicationMenu() {
             },
             {
               label: 'About PassGen',
-              click: () => {
-                const version = app.getVersion()
-                dialog.showMessageBox({
-                  type: 'info',
-                  title: 'About PassGen',
-                  message: `PassGen v${version}`,
-                    detail: 'A secure password generator and vault.\n\nDeveloper: JalalNasser\nLicense: MIT\n\nFeatures:\n• Generate secure passwords\n• Encrypt and store passwords\n• Cloud sync (Premium)\n• Browser extension support\n\nPremium: $15 / 6 months for cloud sync and unlimited items.',
-                  buttons: ['OK', 'Website', 'GitHub', 'Report Issue'],
-                  defaultId: 0,
-                  cancelId: 0
-                }).then(({ response }) => {
-                  if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
-                  if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
-                  if (response === 3) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
-                })
-              }
+              click: showAboutDialog
             },
             { type: 'separator' },
             {
               label: 'Terms (EULA)',
-              click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/blob/main/LICENSE.txt')
+              click: openTerms
             }
           ]
         }
@@ -169,19 +189,11 @@ function buildDefaultMenu() {
       submenu: [
         {
           label: 'Documentation',
-          click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
+          click: openDocumentation
         },
         {
           label: 'Keyboard Shortcuts',
-          click: () => {
-            dialog.showMessageBox({
-              type: 'info',
-              title: 'Keyboard Shortcuts',
-              message: 'PassGen Keyboard Shortcuts',
-              detail: 'Ctrl+C - Copy password\nCtrl+L - Lock vault\nCtrl+N - New password entry\nCtrl+F - Search vault\nCtrl+Q - Quit application\nF5 - Refresh\nF11 - Toggle fullscreen',
-              buttons: ['OK']
-            })
-          }
+          click: showKeyboardShortcuts
         },
         { type: 'separator' },
         {
@@ -190,27 +202,12 @@ function buildDefaultMenu() {
         },
         {
           label: 'About PassGen',
-          click: () => {
-            const version = app.getVersion()
-            dialog.showMessageBox({
-              type: 'info',
-              title: 'About PassGen',
-              message: `PassGen v${version}`,
-              detail: 'A secure password generator and vault.\n\nDeveloper: JalalNasser\nLicense: MIT\n\nFeatures:\n• Generate secure passwords\n• Encrypt and store passwords\n• Cloud sync (Premium)\n• Browser extension support\n\nPremium: $3.99/mo for cloud sync and unlimited items.',
-              buttons: ['OK', 'Website', 'GitHub', 'Report Issue'],
-              defaultId: 0,
-              cancelId: 0
-            }).then(({ response }) => {
-              if (response === 1) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
-              if (response === 2) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases')
-              if (response === 3) shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/issues')
-            })
-          }
+          click: showAboutDialog
         },
         { type: 'separator' },
         {
           label: 'Terms (EULA)',
-          click: () => shell.openExternal('https://github.com/Jalal-Nasser/PassGen-Releases/blob/main/LICENSE.txt')
+          click: openTerms
         }
       ]
     }
@@ -357,6 +354,18 @@ ipcMain.on('window:close', () => {
   if (mainWindow) mainWindow.close()
 })
 
+ipcMain.on('help:documentation', () => {
+  openDocumentation()
+})
+
+ipcMain.on('help:shortcuts', () => {
+  showKeyboardShortcuts()
+})
+
+ipcMain.on('help:about', () => {
+  showAboutDialog()
+})
+
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -426,29 +435,27 @@ ipcMain.handle('payment:requestActivation', async (_event, payload: { email: str
   `
   const textBody = `PassGen Premium Activation Request\n\nInstall/Request ID: ${payload.requestId}\nUser Email: ${payload.email || '(not provided)'}\nPlan: Premium $15 / 6 months\nTime: ${new Date().toISOString()}\n\nPlease verify payment and send activation code.`
 
-  // Try Resend API, fallback to mailto if not configured
+  // Try Resend API; return a clear error if not configured or fails.
   try {
-    if (resendApiKey) {
-      const { Resend } = await import('resend')
-      const resend = new Resend(resendApiKey)
-      
-      await resend.emails.send({
-        from: 'PassGen <onboarding@resend.dev>',
-        to: [adminEmail],
-        subject: subject,
-        html: htmlBody,
-        text: textBody,
-        reply_to: payload.email || undefined
-      })
-      
-      return { success: true }
+    if (!resendApiKey) {
+      return { success: false, error: 'Email service is not configured. Please contact support.' }
     }
-    throw new Error('Resend API key not configured')
+    const { Resend } = await import('resend')
+    const resend = new Resend(resendApiKey)
+
+    await resend.emails.send({
+      from: 'PassGen <onboarding@resend.dev>',
+      to: [adminEmail],
+      subject: subject,
+      html: htmlBody,
+      text: textBody,
+      reply_to: payload.email || undefined
+    })
+
+    return { success: true }
   } catch (err) {
-    // Fallback to mailto link
-    const mailto = `mailto:${encodeURIComponent(adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(textBody)}`
-    shell.openExternal(mailto)
-    return { success: false, error: 'Email service not configured; opened mail client.' }
+    console.error('[PAYMENT] Failed to send activation request via Resend:', err)
+    return { success: false, error: 'Failed to send activation request. Please try again later.' }
   }
 })
 

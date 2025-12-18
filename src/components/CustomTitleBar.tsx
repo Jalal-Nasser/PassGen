@@ -28,6 +28,11 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
     setActiveMenu(null)
   }
 
+  const sendHelpAction = (channel: string) => {
+    closeMenus()
+    ;(window as any).electronAPI?.emit?.(channel)
+  }
+
   return (
     <div className="custom-title-bar">
       <div className="title-bar-left">
@@ -122,14 +127,14 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
               <>
                 <div className="menu-overlay" onClick={closeMenus}></div>
                 <div className="menu-dropdown">
-                  <button className="menu-dropdown-item" onClick={closeMenus}>
+                  <button className="menu-dropdown-item" onClick={() => sendHelpAction('help:documentation')}>
                     <span>Documentation</span>
                   </button>
-                  <button className="menu-dropdown-item" onClick={closeMenus}>
+                  <button className="menu-dropdown-item" onClick={() => sendHelpAction('help:shortcuts')}>
                     <span>Keyboard Shortcuts</span>
                   </button>
                   <div className="menu-divider"></div>
-                  <button className="menu-dropdown-item" onClick={closeMenus}>
+                  <button className="menu-dropdown-item" onClick={() => sendHelpAction('help:about')}>
                     <span>About PassGen</span>
                   </button>
                 </div>

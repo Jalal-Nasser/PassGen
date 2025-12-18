@@ -41,7 +41,7 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
         setSent(true)
         alert('Activation request sent. You will be activated after verification.')
       } else {
-        alert(res.error || 'Opened mail client for manual send.')
+        alert(res.error || 'Failed to send activation request.')
       }
     } catch (e:any) {
       alert('Failed to send activation request: ' + e.message)

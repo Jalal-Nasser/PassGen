@@ -1,0 +1,30 @@
+.settings-modal {
+  max-width: 420px;
+  padding: 18px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.settings-section label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.settings-section select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+html[dir="rtl"] .settings-section {
+  text-align: right;
+}

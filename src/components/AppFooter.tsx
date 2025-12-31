@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react'
 import { ConfigStore } from '../services/configStore'
+import { useI18n } from '../services/i18n'
 
 function AppFooter() {
   const year = new Date().getFullYear()
@@ -8,6 +9,7 @@ function AppFooter() {
   const [updateMsg, setUpdateMsg] = useState<string|null>(null)
   const [isPremium, setIsPremium] = useState(false)
   const store = new ConfigStore()
+  const { t } = useI18n()
 
   useEffect(() => {
     const syncPremium = () => setIsPremium(store.isPremium())
@@ -21,7 +23,7 @@ function AppFooter() {
     setUpdateMsg(null)
     try {
       const res = await fetch('https://api.github.com/repos/Jalal-Nasser/PassGen/releases/latest')
-      if (!res.ok) throw new Error('Failed to fetch release info')
+      if (!res.ok) throw new Error(t('Failed to fetch release info'))
       const data = await res.json()
       const latest = data.tag_name?.replace(/^v/, '')
       const url = data.html_url
@@ -38,15 +40,15 @@ function AppFooter() {
         return A3>B3
       }
       if (latest && newer(latest, current)) {
-        setUpdateMsg(`New version ${latest} available! ` + url)
-        if (window.confirm(`A new version (${latest}) is available!\n\nGo to download page?`)) {
+        setUpdateMsg(t('New version {{version}} available!', { version: latest }) + ' ' + url)
+        if (window.confirm(t('A new version ({{version}}) is available!\n\nGo to download page?', { version: latest }))) {
           window.open(url, '_blank')
         }
       } else {
-        setUpdateMsg('You have the latest version.')
+        setUpdateMsg(t('You have the latest version.'))
       }
     } catch (e:any) {
-      setUpdateMsg('Update check failed: ' + e.message)
+      setUpdateMsg(t('Update check failed: {{message}}', { message: e.message }))
     } finally {
       setChecking(false)
     }
@@ -54,10 +56,12 @@ function AppFooter() {
 
   return (
     <footer className="app-footer">
-      © {year} PassGen · Developer: <a href="https://github.com/Jalal-Nasser" target="_blank" rel="noopener noreferrer">JalalNasser</a> · Blog: <a href="https://jalalnasser.com" target="_blank" rel="noopener noreferrer">BlogiFy</a>
-      {' '}· <a href="#" onClick={(e)=>{e.preventDefault(); window.dispatchEvent(new Event('open-terms'))}}>Terms</a>
-      {' '}· <a href="#" onClick={(e)=>{e.preventDefault(); checkForUpdate()}}>{checking ? 'Checking...' : 'Check for Updates'}</a>
-      {' '}· {isPremium ? 'Premium member' : 'Free: 4 passwords'} {!isPremium && <><span>·</span> <a href="#" onClick={(e)=>{e.preventDefault(); window.dispatchEvent(new Event('open-upgrade'))}}>Upgrade to Premium ($15 / 6 months)</a></>}
+      <span className="footer-line">
+        © {year} PassGen · {t('Developer')}: <a href="https://github.com/Jalal-Nasser" target="_blank" rel="noopener noreferrer">JalalNasser</a> · {t('Blog')}: <a href="https://jalalnasser.com" target="_blank" rel="noopener noreferrer">BlogiFy</a>
+        {' '}· <a href="#" onClick={(e)=>{e.preventDefault(); window.dispatchEvent(new Event('open-terms'))}}>{t('Terms')}</a>
+        {' '}· <a href="#" onClick={(e)=>{e.preventDefault(); checkForUpdate()}}>{checking ? t('Checking...') : t('Check for Updates')}</a>
+        {' '}· {isPremium ? t('Premium member') : t('Free: 4 passwords')} {!isPremium && <><span>·</span> <a href="#" onClick={(e)=>{e.preventDefault(); window.dispatchEvent(new Event('open-upgrade'))}}>{t('Upgrade to Premium ($15 / 6 months)')}</a></>}
+      </span>
       {updateMsg && <div style={{marginTop:4, fontSize:13, color:'#4a4'}}>{updateMsg}</div>}
     </footer>
   )

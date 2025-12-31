@@ -19,7 +19,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron']
+              external: ['electron', 'libsodium-wrappers', 'argon2']
             }
           }
         }
@@ -33,7 +33,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron']
+              external: ['electron', 'libsodium-wrappers', 'argon2']
             }
           }
         }

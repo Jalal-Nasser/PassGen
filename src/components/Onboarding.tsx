@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './Onboarding.css'
 import AppFooter from './AppFooter'
+import { useI18n } from '../services/i18n'
 
 interface OnboardingProps {
   onComplete: () => void
@@ -8,6 +9,7 @@ interface OnboardingProps {
 
 function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(1)
+  const { t } = useI18n()
 
   const nextStep = () => {
     if (step < 3) {
@@ -37,51 +39,51 @@ function Onboarding({ onComplete }: OnboardingProps) {
 
         {step === 1 && (
           <div className="onboarding-step">
-            <h1><span className="step-icon">👋</span> Welcome to PassGen!</h1>
+            <h1><span className="step-icon">👋</span> {t('Welcome to PassGen!')}</h1>
             <p className="step-description">
-              Your secure password manager and generator
+              {t('Your secure password manager and generator')}
             </p>
             <div className="feature-list">
               <div className="feature-item">
                 <span className="feature-icon">🔐</span>
                 <div>
-                  <strong>Generate Strong Passwords</strong>
-                  <p>Create secure, random passwords with customizable options</p>
+                  <strong>{t('Generate Strong Passwords')}</strong>
+                  <p>{t('Create secure, random passwords with customizable options')}</p>
                 </div>
               </div>
               <div className="feature-item">
                 <span className="feature-icon">☁️</span>
                 <div>
-                  <strong>Cloud Sync</strong>
-                  <p>Store passwords in Google Drive, AWS S3, or DigitalOcean Spaces</p>
+                  <strong>{t('Cloud Sync')}</strong>
+                  <p>{t('Store encrypted vaults in Google Drive or S3-compatible storage')}</p>
                 </div>
               </div>
               <div className="feature-item">
                 <span className="feature-icon">🔒</span>
                 <div>
-                  <strong>Military-Grade Encryption</strong>
-                  <p>All passwords encrypted with AES-256 before storage</p>
+                  <strong>{t('Military-Grade Encryption')}</strong>
+                  <p>{t('All passwords encrypted with AES-256 before storage')}</p>
                 </div>
               </div>
               <div className="feature-item">
                 <span className="feature-icon">🚫</span>
                 <div>
-                  <strong>Zero-Knowledge</strong>
-                  <p>Only you can decrypt your passwords. We never see them.</p>
+                  <strong>{t('Zero-Knowledge')}</strong>
+                  <p>{t('Only you can decrypt your passwords. We never see them.')}</p>
                 </div>
               </div>
               <div className="feature-item">
                 <span className="feature-icon">🔍</span>
                 <div>
-                  <strong>Search & Organize</strong>
-                  <p>Quickly find passwords by name, username, or URL</p>
+                  <strong>{t('Search & Organize')}</strong>
+                  <p>{t('Quickly find passwords by name, username, or URL')}</p>
                 </div>
               </div>
               <div className="feature-item">
                 <span className="feature-icon">📋</span>
                 <div>
-                  <strong>Own Your Storage</strong>
-                  <p>Store your passwords on your own storage. Never shared anywhere else.</p>
+                  <strong>{t('Own Your Storage')}</strong>
+                  <p>{t('Store your passwords on your own storage. Never shared anywhere else.')}</p>
                 </div>
               </div>
             </div>
@@ -90,36 +92,35 @@ function Onboarding({ onComplete }: OnboardingProps) {
 
         {step === 2 && (
           <div className="onboarding-step">
-            <h1><span className="step-icon">🛡️</span> How It Works</h1>
+            <h1><span className="step-icon">🛡️</span> {t('How It Works')}</h1>
             <p className="step-description">
-              Your privacy and security, explained
+              {t('Your privacy and security, explained')}
             </p>
             <div className="info-cards">
               <div className="info-card">
-                <h3>1️⃣ Choose Storage</h3>
+                <h3>1️⃣ {t('Choose Storage')}</h3>
                 <p>
-                  Select where to store your encrypted passwords:
-                  <br />• <strong>Local</strong> - Only on your device
-                  <br />• <strong>Google Drive</strong> - Sync across devices
-                  <br />• <strong>AWS S3</strong> - Amazon cloud storage
-                  <br />• <strong>DigitalOcean</strong> - S3-compatible storage
+                  {t('Select where to store your encrypted passwords:')}
+                  <br />• <strong>{t('Local')}</strong> - {t('Only on your device')}
+                  <br />• <strong>Google Drive</strong> - {t('Sync across devices')}
+                  <br />• <strong>{t('S3-Compatible')}</strong> - {t('AWS, R2, Wasabi, Spaces, MinIO')}
+                  <br />• <strong>{t('Dropbox/OneDrive')}</strong> - {t('Coming soon')}
                 </p>
               </div>
               <div className="info-card">
-                <h3>2️⃣ Set Master Password</h3>
+                <h3>2️⃣ {t('Set Master Password')}</h3>
                 <p>
-                  Create a strong master password that encrypts all your data.
+                  {t('Create a strong master password that encrypts all your data.')}
                   <br /><br />
-                  <strong>⚠️ Important:</strong> This password cannot be recovered!
-                  Make it memorable and keep it safe.
+                  <strong>⚠️ {t('Important:')}</strong> {t('This password cannot be recovered! Make it memorable and keep it safe.')}
                 </p>
               </div>
               <div className="info-card">
-                <h3>3️⃣ Start Using</h3>
+                <h3>3️⃣ {t('Start Using')}</h3>
                 <p>
-                  Generate passwords, save them securely, and access them anytime.
+                  {t('Generate passwords, save them securely, and access them anytime.')}
                   <br /><br />
-                  Everything is encrypted on your device before going to the cloud.
+                  {t('Everything is encrypted on your device before going to the cloud.')}
                 </p>
               </div>
             </div>
@@ -128,43 +129,43 @@ function Onboarding({ onComplete }: OnboardingProps) {
 
         {step === 3 && (
           <div className="onboarding-step">
-            <h1><span className="step-icon">⚡</span> Quick Setup Tips</h1>
+            <h1><span className="step-icon">⚡</span> {t('Quick Setup Tips')}</h1>
             <p className="step-description">
-              Get the most out of PassGen
+              {t('Get the most out of PassGen')}
             </p>
             <div className="tips-list">
               <div className="tip-item">
                 <span className="tip-number">💡</span>
                 <div>
-                  <strong>Master Password Best Practices</strong>
+                  <strong>{t('Master Password Best Practices')}</strong>
                   <ul>
-                    <li>Use at least 12-16 characters</li>
-                    <li>Mix uppercase, lowercase, numbers, and symbols</li>
-                    <li>Make it memorable but unique</li>
-                    <li>Consider using a passphrase (e.g., "Coffee&Music@Dawn2025!")</li>
+                    <li>{t('Use at least 12-16 characters')}</li>
+                    <li>{t('Mix uppercase, lowercase, numbers, and symbols')}</li>
+                    <li>{t('Make it memorable but unique')}</li>
+                    <li>{t('Consider using a passphrase (e.g., "Coffee&Music@Dawn2025!")')}</li>
                   </ul>
                 </div>
               </div>
               <div className="tip-item">
                 <span className="tip-number">🔑</span>
                 <div>
-                  <strong>Cloud Storage Credentials</strong>
+                  <strong>{t('Cloud Storage Credentials')}</strong>
                   <ul>
-                    <li>For Google Drive: Get OAuth credentials from Google Cloud Console</li>
-                    <li>For AWS S3: Create IAM user with S3 permissions</li>
-                    <li>For DigitalOcean: Generate Spaces access keys</li>
-                    <li>Or start with Local storage and add cloud sync later</li>
+                    <li>{t('For Google Drive: Connect once in-app to authorize access')}</li>
+                    <li>{t('For S3-compatible: Create access keys and a bucket')}</li>
+                    <li>{t('Supports AWS, DigitalOcean Spaces, Wasabi, Cloudflare R2, and MinIO')}</li>
+                    <li>{t('Or start with Local storage and add cloud sync later')}</li>
                   </ul>
                 </div>
               </div>
               <div className="tip-item">
                 <span className="tip-number">🎯</span>
                 <div>
-                  <strong>Getting Started</strong>
+                  <strong>{t('Getting Started')}</strong>
                   <ul>
-                    <li>Start simple with local storage if you're unsure</li>
-                    <li>You can always change storage providers later</li>
-                    <li>Your master password stays the same across providers</li>
+                    <li>{t("Start simple with local storage if you're unsure")}</li>
+                    <li>{t('You can always change storage providers later')}</li>
+                    <li>{t('Your master password stays the same across providers')}</li>
                   </ul>
                 </div>
               </div>
@@ -175,16 +176,16 @@ function Onboarding({ onComplete }: OnboardingProps) {
         <div className="onboarding-actions">
           {step > 1 && (
             <button onClick={prevStep} className="btn-secondary">
-              ← Back
+              ← {t('Back')}
             </button>
           )}
           <button onClick={nextStep} className="btn-primary">
-            {step === 3 ? "Let's Get Started! 🚀" : 'Next →'}
+            {step === 3 ? t("Let's Get Started! 🚀") : t('Next →')}
           </button>
         </div>
 
         <div className="step-indicator">
-          Step {step} of 3
+          {t('Step {{step}} of 3', { step })}
         </div>
       </div>
       <AppFooter />

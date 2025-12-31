@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ConfigStore } from '../services/configStore'
 import { copyText } from '../services/clipboard'
 import './UpgradeModal.css'
+import { useI18n } from '../services/i18n'
 
 interface UpgradeModalProps {
   open: boolean
@@ -15,6 +16,7 @@ const PAYPAL_QR_PATH = 'qr.png' // Provided PayPal QR code asset (relative for p
 
 export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
   const store = new ConfigStore()
+  const { t } = useI18n()
   const [installId, setInstallId] = useState<string>('')
   const showTestVerify = ((import.meta as any)?.env?.DEV as boolean) === true
 
@@ -40,12 +42,12 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
       const res = await window.electron.payment.requestActivation({ email: userEmail, requestId, paymentMethod })
       if (res.success) {
         setSent(true)
-        alert('Activation request sent. You will be activated after verification.')
+        alert(t('Activation request sent. You will be activated after verification.'))
       } else {
-        alert(res.error || 'Failed to send activation request.')
+        alert(res.error || t('Failed to send activation request.'))
       }
     } catch (e:any) {
-      alert('Failed to send activation request: ' + e.message)
+      alert(t('Failed to send activation request: {{message}}', { message: e.message }))
     } finally {
       setSending(false)
     }
@@ -55,49 +57,49 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
   const [testResult, setTestResult] = useState<string>('')
   const [devSecret, setDevSecret] = useState<string>(showTestVerify ? store.getSellerSecretForDebug() : '')
   const activateWithCode = () => {
-    if (!code) { alert('Enter activation code'); return }
-    if (!userEmail) { alert('Enter your email first'); return }
+    if (!code) { alert(t('Enter activation code')); return }
+    if (!userEmail) { alert(t('Enter your email first')); return }
     if (store.verifyActivationCode(code, userEmail)) {
       store.setPremium(true)
       // Notify main process to update menu
       ;(window as any).electronAPI?.emit?.('premium:changed')
       onClose()
-      alert('Premium activated. Enjoy!')
+      alert(t('Premium activated. Enjoy!'))
     } else {
-      alert('Invalid activation code.')
+      alert(t('Invalid activation code.'))
     }
   }
 
   const copyInstallId = async () => {
     try {
       const ok = await copyText(installId)
-      if (!ok) alert('Failed to copy Install ID')
+      if (!ok) alert(t('Failed to copy Install ID'))
     } catch {
-      alert('Failed to copy Install ID')
+      alert(t('Failed to copy Install ID'))
     }
   }
 
   const copyCryptoAddress = async () => {
     try {
       const ok = await copyText(CRYPTO_ADDRESS_USDT_BSC)
-      if (!ok) alert('Failed to copy address')
+      if (!ok) alert(t('Failed to copy address'))
     } catch {
-      alert('Failed to copy address')
+      alert(t('Failed to copy address'))
     }
   }
 
   const testVerify = () => {
-    if (!code || !userEmail) { setTestResult('Enter email and code'); return }
+    if (!code || !userEmail) { setTestResult(t('Enter email and code')); return }
     const ok = store.verifyActivationCode(code, userEmail)
-    setTestResult(ok ? '✓ Code matches (dev test)' : '✗ Code does not match')
+    setTestResult(ok ? t('✓ Code matches (dev test)') : t('✗ Code does not match'))
   }
 
   const generateCode = async () => {
-    if (!userEmail) { setTestResult('Enter email first'); return }
+    if (!userEmail) { setTestResult(t('Enter email first')); return }
     const generated = store.computeActivationCode(userEmail)
     setCode(generated)
     try { await copyText(generated) } catch {}
-    setTestResult(`✓ Generated & copied: ${generated}`)
+    setTestResult(t('✓ Generated & copied: {{code}}', { code: generated }))
   }
 
   if (!open) return null
@@ -107,10 +109,10 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
       <div className="modal-backdrop" onClick={onClose}>
         <div className="modal upgrade-modal" onClick={(e) => e.stopPropagation()}>
           <div className="upgrade-hero success">
-            <div className="eyebrow">Premium active</div>
-            <h2>🎉 You are already a Premium user!</h2>
-            <p>Enjoy unlimited passwords and cloud sync.</p>
-            <button className="btn-primary" onClick={onClose}>Close</button>
+            <div className="eyebrow">{t('Premium active')}</div>
+            <h2>🎉 {t('You are already a Premium user!')}</h2>
+            <p>{t('Enjoy unlimited passwords and cloud sync.')}</p>
+            <button className="btn-primary" onClick={onClose}>{t('Close')}</button>
           </div>
         </div>
       </div>
@@ -121,21 +123,21 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal upgrade-modal" onClick={(e) => e.stopPropagation()}>
         <div className="upgrade-hero">
-          <div className="eyebrow">Secure upgrade</div>
-          <h2>Unlock Premium</h2>
-          <p className="modal-sub">Unlimited vault entries and cloud sync for {PREMIUM_PRICE}</p>
+          <div className="eyebrow">{t('Secure upgrade')}</div>
+          <h2>{t('Unlock Premium')}</h2>
+          <p className="modal-sub">{t('Unlimited vault entries and cloud sync for {{price}}', { price: PREMIUM_PRICE })}</p>
           <div className="price-badge">
             <span>{PREMIUM_PRICE}</span>
-            <small>6 months of sync + updates</small>
+            <small>{t('6 months of sync + updates')}</small>
           </div>
         </div>
 
         <div className="payment-section">
           <div className="section-heading">
-            <span className="pill">Step 1</span>
+            <span className="pill">{t('Step 1')}</span>
             <div>
-              <div className="section-title">Pay using the QR that suits you</div>
-              <div className="section-sub">Scan the QR with your phone to complete payment.</div>
+              <div className="section-title">{t('Pay using the QR that suits you')}</div>
+              <div className="section-sub">{t('Scan the QR with your phone to complete payment.')}</div>
             </div>
           </div>
           <div className="pay-grid modern">
@@ -147,9 +149,9 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
                     alt="PayPal"
                     className="brand-logo"
                   />
-                  <span className="brand-sub">Scan with your PayPal app</span>
+                  <span className="brand-sub">{t('Scan with your PayPal app')}</span>
                 </div>
-                <span className="pill outline">Instant</span>
+                <span className="pill outline">{t('Instant')}</span>
               </div>
               <div className="qr-wrap elevated">
                 <img
@@ -159,7 +161,7 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
                 />
               </div>
               <div className="pay-note">
-                Scan with your phone to pay.
+                {t('Scan with your phone to pay.')}
               </div>
             </div>
 
@@ -167,9 +169,9 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
               <div className="pay-card__header">
                 <div className="brand">
                   <div className="crypto-badge">USDT · BSC</div>
-                  <span className="brand-sub">Send 15 USDT (BEP20)</span>
+                  <span className="brand-sub">{t('Send 15 USDT (BEP20)')}</span>
                 </div>
-                <button className="ghost-btn" onClick={copyCryptoAddress}>Copy address</button>
+                <button className="ghost-btn" onClick={copyCryptoAddress}>{t('Copy address')}</button>
               </div>
               <div className="qr-wrap elevated">
                 <img
@@ -179,8 +181,8 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
               </div>
               <div className="pay-note">
                 <div className="address-row">
-                  <code>{CRYPTO_ADDRESS_USDT_BSC}</code>
-                  <button className="ghost-btn" onClick={copyCryptoAddress}>Copy</button>
+                  <code className="ltr-input">{CRYPTO_ADDRESS_USDT_BSC}</code>
+                  <button className="ghost-btn" onClick={copyCryptoAddress}>{t('Copy')}</button>
                 </div>
               </div>
             </div>
@@ -189,22 +191,22 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
         <div className="activation-card">
           <div className="section-heading">
-            <span className="pill accent">Step 2</span>
+            <span className="pill accent">{t('Step 2')}</span>
             <div>
-              <div className="section-title">Request activation after payment</div>
-              <div className="section-sub">Share your email, then paste the code you get back to unlock Premium.</div>
+              <div className="section-title">{t('Request activation after payment')}</div>
+              <div className="section-sub">{t('Share your email, then paste the code you get back to unlock Premium.')}</div>
             </div>
           </div>
           <div className="activation-fields">
             <div className="email-capture subtle">
-              <label>Install ID (for support)</label>
+              <label>{t('Install ID (for support)')}</label>
               <div className="input-with-button">
-                <input type="text" value={installId} readOnly />
-                <button className="ghost-btn" onClick={copyInstallId}>Copy</button>
+                <input type="text" value={installId} readOnly className="ltr-input" />
+                <button className="ghost-btn" onClick={copyInstallId}>{t('Copy')}</button>
               </div>
             </div>
             <div className="email-capture">
-              <label>Payment Method</label>
+              <label>{t('Payment Method')}</label>
               <div className="payment-method-selector">
                 <label className={`method-option ${paymentMethod === 'paypal' ? 'active' : ''}`}>
                   <input
@@ -222,58 +224,61 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
                     checked={paymentMethod === 'crypto'}
                     onChange={(e) => setPaymentMethod(e.target.value as 'crypto')}
                   />
-                  <span>Crypto (USDT)</span>
+                  <span>{t('Crypto (USDT)')}</span>
                 </label>
               </div>
             </div>
             <div className="email-capture">
-              <label>Your Email (for activation)</label>
+              <label>{t('Your Email (for activation)')}</label>
               <input
                 type="email"
                 placeholder="you@example.com"
                 value={userEmail}
                 onChange={(e)=>setUserEmail(e.target.value)}
+                className="ltr-input"
               />
             </div>
             <div className="email-capture">
-              <label>Activation Code</label>
+              <label>{t('Activation Code')}</label>
               <input
                 type="text"
-                placeholder="Enter code from seller"
+                placeholder={t('Enter code from seller')}
                 value={code}
                 onChange={(e)=>setCode(e.target.value)}
+                className="ltr-input"
               />
             </div>
           </div>
           <div className="activation-actions">
             <button className="btn-secondary" disabled={sending || sent} onClick={requestActivation}>
-              {sent ? 'Request Sent' : sending ? 'Sending...' : 'Request Activation'}
+              {sent ? t('Request Sent') : sending ? t('Sending...') : t('Request Activation')}
             </button>
-            <button className="btn-primary" onClick={activateWithCode}>Activate</button>
+            <button className="btn-primary" onClick={activateWithCode}>{t('Activate')}</button>
             {showTestVerify && (
               <>
-                <button className="btn-secondary" onClick={testVerify}>Test Verify (dev)</button>
-                <button className="btn-secondary" onClick={generateCode}>Generate Code (dev)</button>
+                <button className="btn-secondary" onClick={testVerify}>{t('Test Verify (dev)')}</button>
+                <button className="btn-secondary" onClick={generateCode}>{t('Generate Code (dev)')}</button>
               </>
             )}
-            <button className="btn-secondary ghost" onClick={onClose}>Close</button>
+            <button className="btn-secondary ghost" onClick={onClose}>{t('Close')}</button>
           </div>
           {showTestVerify && testResult && (
             <div className="dev-hint">{testResult}</div>
           )}
           {showTestVerify && (
             <div className="dev-secret">
-              <label>Seller Secret (dev only, stored locally)</label>
+              <label>{t('Seller Secret (dev only, stored locally)')}</label>
               <div className="input-with-button">
                 <input
                   type="text"
-                  placeholder="override secret for testing"
+                  placeholder={t('override secret for testing')}
                   value={devSecret}
                   onChange={(e)=>setDevSecret(e.target.value)}
+                  className="ltr-input"
                 />
-                <button className="btn-secondary" onClick={()=>{ store.setSellerSecretForDebug(devSecret); setTestResult('Secret updated locally'); }}>Save</button>
+                <button className="btn-secondary" onClick={()=>{ store.setSellerSecretForDebug(devSecret); setTestResult(t('Secret updated locally')); }}>{t('Save')}</button>
               </div>
-              <small>Used to compute codes during development/testing without rebuild.</small>
+              <small>{t('Used to compute codes during development/testing without rebuild.')}</small>
             </div>
           )}
         </div>

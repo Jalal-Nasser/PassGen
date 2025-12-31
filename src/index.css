@@ -27,3 +27,93 @@ body {
   max-width: none;
   padding: 0;
 }
+
+.ltr-input {
+  direction: ltr;
+  text-align: left;
+}
+
+html[dir="rtl"] body {
+  direction: rtl;
+}
+
+html[dir="rtl"] .toggle-password-btn {
+  right: auto;
+  left: 12px;
+}
+
+html[dir="rtl"] .password-hint {
+  text-align: right;
+}
+
+html[dir="rtl"] .custom-title-bar .menu-dropdown,
+html[dir="rtl"] .title-bar .title-menu-dropdown {
+  left: auto;
+  right: 0;
+}
+
+html[dir="rtl"] .menu-dropdown-item {
+  text-align: right;
+}
+
+html[dir="rtl"] .menu-dropdown-item .shortcut {
+  margin-left: 0;
+  margin-right: 16px;
+}
+
+html[dir="rtl"] .title-menu-dropdown button {
+  text-align: right;
+}
+
+html[dir="rtl"] .dropdown-menu {
+  left: 0;
+  right: auto;
+}
+
+html[dir="rtl"] .dropdown-menu button {
+  text-align: right;
+}
+
+html[dir="rtl"] .dropdown-toggle::after {
+  margin-left: 0;
+  margin-right: 6px;
+}
+
+html[dir="rtl"] .premium-badge {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+html[dir="rtl"] .feature-list,
+html[dir="rtl"] .info-cards,
+html[dir="rtl"] .tips-list {
+  text-align: right;
+}
+
+html[dir="rtl"] .feature-item:hover {
+  transform: translateX(-2px);
+}
+
+html[dir="rtl"] .tip-item {
+  border-left: none;
+  border-right: 3px solid #667eea;
+}
+
+html[dir="rtl"] .tip-item ul {
+  margin-left: 0;
+  margin-right: 12px;
+}
+
+html[dir="rtl"] .upgrade-modal h2,
+html[dir="rtl"] .upgrade-modal .modal-sub {
+  text-align: right;
+}
+
+html[dir="rtl"] .benefits {
+  margin: 0 18px 14px 0;
+}
+
+html[dir="rtl"] .app-icon {
+  margin-left: 0;
+  margin-right: 4px;
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import './CustomTitleBar.css'
+import { useI18n } from '../services/i18n'
 
 interface CustomTitleBarProps {
   title?: string
@@ -7,6 +8,7 @@ interface CustomTitleBarProps {
 
 export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen' }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const { t } = useI18n()
 
   const handleMinimize = () => {
     (window as any).electronAPI?.minimize()
@@ -50,28 +52,28 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
               className={`menu-button ${activeMenu === 'file' ? 'active' : ''}`}
               onClick={() => toggleMenu('file')}
             >
-              File
+              {t('File')}
             </button>
             {activeMenu === 'file' && (
               <>
                 <div className="menu-overlay" onClick={closeMenus}></div>
                 <div className="menu-dropdown">
                   <button className="menu-dropdown-item" onClick={() => { closeMenus(); window.dispatchEvent(new CustomEvent('vault-import')); }}>
-                    <span>Open Vault Backup</span>
+                    <span>{t('Open Vault Backup')}</span>
                     <span className="shortcut">Ctrl+O</span>
                   </button>
                   <button className="menu-dropdown-item" onClick={() => { closeMenus(); window.dispatchEvent(new CustomEvent('vault-export')); }}>
-                    <span>Save Vault Backup</span>
+                    <span>{t('Save Vault Backup')}</span>
                     <span className="shortcut">Ctrl+S</span>
                   </button>
                   <div className="menu-divider"></div>
-                  <button className="menu-dropdown-item" onClick={() => { closeMenus(); window.dispatchEvent(new Event('open-upgrade')); }}>
-                    <span>Settings</span>
+                  <button className="menu-dropdown-item" onClick={() => { closeMenus(); window.dispatchEvent(new Event('open-settings')); }}>
+                    <span>{t('Settings')}</span>
                     <span className="shortcut">Ctrl+,</span>
                   </button>
                   <div className="menu-divider"></div>
                   <button className="menu-dropdown-item" onClick={() => { closeMenus(); handleClose(); }}>
-                    <span>Exit</span>
+                    <span>{t('Exit')}</span>
                     <span className="shortcut">Alt+F4</span>
                   </button>
                 </div>
@@ -84,31 +86,31 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
               className={`menu-button ${activeMenu === 'view' ? 'active' : ''}`}
               onClick={() => toggleMenu('view')}
             >
-              View
+              {t('View')}
             </button>
             {activeMenu === 'view' && (
               <>
                 <div className="menu-overlay" onClick={closeMenus}></div>
                 <div className="menu-dropdown">
                   <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>Reload</span>
+                    <span>{t('Reload')}</span>
                     <span className="shortcut">Ctrl+R</span>
                   </button>
                   <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>Toggle DevTools</span>
+                    <span>{t('Toggle DevTools')}</span>
                     <span className="shortcut">F12</span>
                   </button>
                   <div className="menu-divider"></div>
                   <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>Actual Size</span>
+                    <span>{t('Actual Size')}</span>
                     <span className="shortcut">Ctrl+0</span>
                   </button>
                   <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>Zoom In</span>
+                    <span>{t('Zoom In')}</span>
                     <span className="shortcut">Ctrl++</span>
                   </button>
                   <button className="menu-dropdown-item" onClick={closeMenus}>
-                    <span>Zoom Out</span>
+                    <span>{t('Zoom Out')}</span>
                     <span className="shortcut">Ctrl+-</span>
                   </button>
                 </div>
@@ -121,21 +123,21 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
               className={`menu-button ${activeMenu === 'help' ? 'active' : ''}`}
               onClick={() => toggleMenu('help')}
             >
-              Help
+              {t('Help')}
             </button>
             {activeMenu === 'help' && (
               <>
                 <div className="menu-overlay" onClick={closeMenus}></div>
                 <div className="menu-dropdown">
                   <button className="menu-dropdown-item" onClick={() => sendHelpAction('help:documentation')}>
-                    <span>Documentation</span>
+                    <span>{t('Documentation')}</span>
                   </button>
                   <button className="menu-dropdown-item" onClick={() => sendHelpAction('help:shortcuts')}>
-                    <span>Keyboard Shortcuts</span>
+                    <span>{t('Keyboard Shortcuts')}</span>
                   </button>
                   <div className="menu-divider"></div>
                   <button className="menu-dropdown-item" onClick={() => sendHelpAction('help:about')}>
-                    <span>About PassGen</span>
+                    <span>{t('About PassGen')}</span>
                   </button>
                 </div>
               </>
@@ -145,17 +147,17 @@ export const CustomTitleBar: React.FC<CustomTitleBarProps> = ({ title = 'PassGen
       </div>
 
       <div className="title-bar-right">
-        <button className="title-bar-button minimize-btn" onClick={handleMinimize} title="Minimize">
+        <button className="title-bar-button minimize-btn" onClick={handleMinimize} title={t('Minimize')}>
           <svg width="12" height="12" viewBox="0 0 12 12">
             <path d="M0 6h12" stroke="currentColor" strokeWidth="1"/>
           </svg>
         </button>
-        <button className="title-bar-button maximize-btn" onClick={handleMaximize} title="Maximize">
+        <button className="title-bar-button maximize-btn" onClick={handleMaximize} title={t('Maximize')}>
           <svg width="12" height="12" viewBox="0 0 12 12">
             <rect x="1" y="1" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1"/>
           </svg>
         </button>
-        <button className="title-bar-button close-btn" onClick={handleClose} title="Close">
+        <button className="title-bar-button close-btn" onClick={handleClose} title={t('Close')}>
           <svg width="12" height="12" viewBox="0 0 12 12">
             <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1"/>
           </svg>

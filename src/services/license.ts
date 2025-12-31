@@ -1,0 +1,37 @@
+import { ConfigStore } from './configStore'
+import type { ProviderId } from './storageTypes'
+
+export type PremiumTier = 'free' | 'pro' | 'cloud' | 'byos'
+
+export function isPremiumEnabled(): boolean {
+  const store = new ConfigStore()
+  return store.isPremium()
+}
+
+export function getPremiumTier(): PremiumTier {
+  const raw = (localStorage.getItem('passgen-premium-tier') || '').toLowerCase()
+  if (raw === 'pro' || raw === 'cloud' || raw === 'byos') {
+    return raw
+  }
+
+  const store = new ConfigStore()
+  return store.isPremium() ? 'cloud' : 'free'
+}
+
+export function isProviderAllowed(provider: ProviderId, tier: PremiumTier): boolean {
+  if (provider === 'local') return true
+
+  if (provider === 'google-drive' || provider === 'dropbox' || provider === 'onedrive') {
+    return tier === 'cloud' || tier === 'byos'
+  }
+
+  if (provider === 's3-compatible') {
+    return tier === 'byos'
+  }
+
+  return false
+}
+
+export function getEntryLimit(tier: PremiumTier): number | null {
+  return tier === 'free' ? 4 : null
+}

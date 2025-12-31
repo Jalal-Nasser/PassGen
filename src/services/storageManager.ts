@@ -1,241 +1,126 @@
-import { EncryptionService, PasswordEntry } from './encryption';
-import { ConfigStore, StorageConfig } from './configStore';
+import type { StorageConfig, ProviderId } from './storageTypes'
+import type { PasswordEntry } from './encryption'
+
+const PROVIDER_LABELS: Record<ProviderId, string> = {
+  local: 'Local Storage',
+  'google-drive': 'Google Drive',
+  's3-compatible': 'S3-Compatible Storage',
+  dropbox: 'Dropbox (Coming soon)',
+  onedrive: 'OneDrive (Coming soon)'
+}
 
 export class StorageManager {
-  private encryption: EncryptionService | null = null;
-  private configStore: ConfigStore;
-  private currentConfig: StorageConfig | null = null;
+  private currentConfig: StorageConfig | null = null
+  private providerLabel = PROVIDER_LABELS.local
 
-  constructor() {
-    this.configStore = new ConfigStore();
-    this.currentConfig = this.configStore.getStorageConfig();
-  }
+  async initializeEncryption(masterPassword: string): Promise<void> {
+    const api = (window as any).electronAPI
+    if (!api?.vaultUnlock) {
+      throw new Error('Vault backend is not available')
+    }
 
-  initializeEncryption(masterPassword: string): void {
-    this.encryption = new EncryptionService(masterPassword);
+    await api.vaultUnlock(masterPassword)
+    await this.migrateLegacyVault(masterPassword)
+    await this.refreshProviderStatus()
   }
 
   async initializeStorage(config: StorageConfig): Promise<void> {
-    this.currentConfig = config;
-    this.configStore.setStorageConfig(config);
+    const api = (window as any).electronAPI
+    if (!api?.storageConfigure) {
+      throw new Error('Vault backend is not available')
+    }
 
-    // Don't initialize cloud services in browser context
-    // They'll be initialized when actually needed (in Electron main process)
-    console.log('Storage configured:', config.provider);
+    this.currentConfig = config
+    await api.storageConfigure(config)
+    await this.refreshProviderStatus()
   }
 
   async savePasswordEntry(entry: PasswordEntry): Promise<void> {
-    if (!this.encryption) {
-      throw new Error('Encryption not initialized. Please set master password.');
-    }
-
-    const encryptedData = this.encryption.encryptEntry(entry);
-    const filename = `password-${entry.id}.json`;
-
-    switch (this.currentConfig?.provider) {
-      case 'local':
-        // Save to localStorage for now
-        const existingData = localStorage.getItem('passgen-vault-data');
-        const vault = existingData ? JSON.parse(existingData) : [];
-        vault.push({ filename, data: encryptedData });
-        localStorage.setItem('passgen-vault-data', JSON.stringify(vault));
-        break;
-
-      case 'google-drive':
-      case 's3':
-      case 'digitalocean':
-        // Cloud storage will be implemented via IPC in future update
-        alert('Cloud storage sync coming soon! For now, passwords are saved locally.');
-        const localData = localStorage.getItem('passgen-vault-data');
-        const localVault = localData ? JSON.parse(localData) : [];
-        localVault.push({ filename, data: encryptedData });
-        localStorage.setItem('passgen-vault-data', JSON.stringify(localVault));
-        break;
-
-      default:
-        throw new Error('No storage provider configured');
-    }
+    const api = (window as any).electronAPI
+    if (!api?.vaultAdd) throw new Error('Vault backend is not available')
+    await api.vaultAdd(entry)
   }
 
   async updatePasswordEntry(entry: PasswordEntry): Promise<void> {
-    if (!this.encryption) {
-      throw new Error('Encryption not initialized. Please set master password.');
-    }
-
-    const encryptedData = this.encryption.encryptEntry(entry);
-    const filename = `password-${entry.id}.json`;
-
-    // Load existing vault
-    const existingData = localStorage.getItem('passgen-vault-data');
-    if (!existingData) {
-      throw new Error('No vault data found');
-    }
-    const vault = JSON.parse(existingData);
-
-    // Find and update the entry
-    const index = vault.findIndex((item: any) => item.filename === filename);
-    if (index === -1) {
-      throw new Error('Entry not found');
-    }
-    vault[index] = { filename, data: encryptedData };
-
-    // Save back
-    localStorage.setItem('passgen-vault-data', JSON.stringify(vault));
+    const api = (window as any).electronAPI
+    if (!api?.vaultUpdate) throw new Error('Vault backend is not available')
+    await api.vaultUpdate(entry)
   }
 
   async getAllPasswordEntries(): Promise<PasswordEntry[]> {
-    if (!this.encryption) {
-      throw new Error('Encryption not initialized');
-    }
-
-    const entries: PasswordEntry[] = [];
-
-    // Load from localStorage for all providers (temporary until IPC is implemented)
-    const vaultData = localStorage.getItem('passgen-vault-data');
-    if (vaultData) {
-      let vault: Array<{ filename: string; data: string }> = [];
-      try {
-        vault = JSON.parse(vaultData);
-      } catch (e) {
-        console.warn('Vault index is corrupted; resetting vault.');
-        localStorage.removeItem('passgen-vault-data');
-        return entries;
-      }
-      for (const item of vault) {
-        try {
-          const entry = this.encryption.decryptEntry(item.data);
-          entries.push(entry);
-        } catch (error) {
-          console.warn(`Failed to decrypt entry:`, error);
-        }
-      }
-    }
-
-    return entries;
+    const api = (window as any).electronAPI
+    if (!api?.vaultList) throw new Error('Vault backend is not available')
+    return await api.vaultList()
   }
 
-  /**
-   * Attempts to repair the local vault by:
-   * - Dropping unreadable or truncated records
-   * - Migrating any accidental plaintext records to encrypted form
-   * Returns a summary of actions taken.
-   */
   async repairVault(): Promise<{ total: number; kept: number; migrated: number; removed: number }> {
-    if (!this.encryption) throw new Error('Encryption not initialized');
-
-    const raw = localStorage.getItem('passgen-vault-data');
-    if (!raw) return { total: 0, kept: 0, migrated: 0, removed: 0 };
-
-    let list: Array<{ filename: string; data: string }> = [];
-    try {
-      list = JSON.parse(raw);
-    } catch (e) {
-      console.warn('Repair: vault index JSON invalid. Clearing.');
-      localStorage.removeItem('passgen-vault-data');
-      return { total: 0, kept: 0, migrated: 0, removed: 0 };
-    }
-
-    const next: Array<{ filename: string; data: string }> = [];
-    let migrated = 0;
-    let kept = 0;
-    for (const item of list) {
-      if (!item || typeof item.data !== 'string') { continue; }
-      try {
-        // If decrypt works, keep as-is
-        this.encryption.decryptEntry(item.data);
-        next.push(item);
-        kept++;
-        continue;
-      } catch {}
-
-      // Try to detect plaintext JSON and migrate
-      try {
-        const maybePlain: PasswordEntry = JSON.parse(item.data);
-        if (maybePlain && maybePlain.id && maybePlain.name) {
-          const encryptedData = this.encryption.encryptEntry(maybePlain);
-          next.push({ filename: item.filename || `password-${maybePlain.id}.json`, data: encryptedData });
-          migrated++;
-        }
-      } catch {
-        // drop unrecoverable record
-      }
-    }
-
-    localStorage.setItem('passgen-vault-data', JSON.stringify(next));
-    const total = list.length;
-    const removed = total - (kept + migrated);
-    return { total, kept, migrated, removed };
+    const api = (window as any).electronAPI
+    if (!api?.vaultRepair) throw new Error('Vault backend is not available')
+    return await api.vaultRepair()
   }
 
-  getGoogleDriveAuthUrl(): string {
-    // Will be implemented via IPC in future update
-    return '';
+  async exportVault(): Promise<string> {
+    const api = (window as any).electronAPI
+    if (!api?.vaultExportEncrypted) throw new Error('Vault backend is not available')
+    return await api.vaultExportEncrypted()
   }
 
-  async authenticateGoogleDrive(_code: string): Promise<void> {
-    // Will be implemented via IPC in future update
-    console.log('Google Drive auth will be implemented via IPC');
+  async importVault(data: string): Promise<void> {
+    const api = (window as any).electronAPI
+    if (!api?.vaultImportEncrypted) throw new Error('Vault backend is not available')
+    await api.vaultImportEncrypted(data)
+  }
+
+  async getVaultStatus(): Promise<{ hasVault: boolean; vaultPath: string; activeProviderId: ProviderId }> {
+    const api = (window as any).electronAPI
+    if (!api?.vaultStatus) throw new Error('Vault backend is not available')
+    return await api.vaultStatus()
+  }
+
+  async refreshProviderStatus(): Promise<string> {
+    const api = (window as any).electronAPI
+    if (!api?.storageProviderStatus) return this.providerLabel
+    const status = await api.storageProviderStatus()
+    const label = PROVIDER_LABELS[status.activeProviderId as ProviderId] || status.activeProviderId
+    this.providerLabel = label
+    return label
   }
 
   getCurrentProvider(): string {
-    return this.currentConfig?.provider || 'none';
+    return this.providerLabel
   }
 
   getStorageConfig(): StorageConfig | null {
-    return this.configStore.getStorageConfig();
+    return this.currentConfig
   }
 
-  /**
-   * Export the encrypted vault data as a JSON string.
-   * Returns the raw encrypted vault for backup.
-   */
-  exportVault(): string {
-    const vaultData = localStorage.getItem('passgen-vault-data');
-    if (!vaultData) {
-      throw new Error('No vault data to export');
-    }
-    return vaultData;
-  }
-
-  /**
-   * Import encrypted vault data from a JSON string.
-   * Replaces the current vault with the imported data.
-   */
-  importVault(data: string): void {
-    try {
-      // Validate it's valid JSON
-      const parsed = JSON.parse(data);
-      if (!Array.isArray(parsed)) {
-        throw new Error('Invalid vault format');
-      }
-      localStorage.setItem('passgen-vault-data', data);
-    } catch (e) {
-      throw new Error('Invalid vault data: ' + (e as Error).message);
-    }
-  }
-
-  /**
-   * Clears all local data and configuration so the app restarts the wizard.
-   * This removes: storage config, master hash, and locally saved encrypted vault data.
-   */
   resetApp(): void {
     try {
-      // Clear config and master hash
-      if (typeof this.configStore.clear === 'function') {
-        // @ts-ignore allow calling clear if defined in our ConfigStore implementation
-        this.configStore.clear();
-      }
-
-      // Clear any key starting with 'passgen-' to be thorough
       Object.keys(localStorage)
         .filter(k => k.toLowerCase().startsWith('passgen-'))
-        .forEach(k => localStorage.removeItem(k));
+        .forEach(k => localStorage.removeItem(k))
 
-      // Reset in-memory state
-      this.currentConfig = null;
-      this.encryption = null;
+      this.currentConfig = null
+      this.providerLabel = PROVIDER_LABELS.local
     } catch (e) {
-      console.error('Failed to reset app state:', e);
+      console.error('Failed to reset app state:', e)
+    }
+  }
+
+  private async migrateLegacyVault(masterPassword: string): Promise<void> {
+    const api = (window as any).electronAPI
+    if (!api?.vaultImportLegacy) return
+
+    const raw = localStorage.getItem('passgen-vault-data')
+    if (!raw) return
+
+    try {
+      const parsed = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      await api.vaultImportLegacy(parsed, masterPassword)
+      localStorage.removeItem('passgen-vault-data')
+    } catch (error) {
+      console.warn('Legacy vault migration failed:', error)
     }
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import { copyText } from './services/clipboard'
 import SplashScreen from './components/SplashScreen'
@@ -11,8 +11,9 @@ import PasswordVault from './components/PasswordVault'
 import { CustomTitleBar } from './components/CustomTitleBar'
 import { StorageManager } from './services/storageManager'
 import { ConfigStore } from './services/configStore'
-// import { StorageConfig } from './services/configStore'
-import CryptoJS from 'crypto-js'
+import { getPremiumTier } from './services/license'
+import { useI18n } from './services/i18n'
+import SettingsModal from './components/SettingsModal'
 
 interface PasswordOptions {
   length: number
@@ -43,47 +44,54 @@ function App() {
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [showStorageSetup, setShowStorageSetup] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [passwordHint, setPasswordHint] = useState('')
   const [passwordHintInput, setPasswordHintInput] = useState('')
-  const configStore = useMemo(() => new ConfigStore(), [])
-  const [isPremium, setIsPremium] = useState(configStore.isPremium())
+  const [premiumTier, setPremiumTier] = useState(getPremiumTier())
+  const isPremium = premiumTier !== 'free'
+  const { t } = useI18n()
 
   useEffect(() => {
     const openUpgrade = () => setShowUpgrade(true)
     const openTerms = () => setShowTerms(true)
     const openStorageSetup = () => setShowStorageSetup(true)
+    const openSettings = () => setShowSettings(true)
     window.addEventListener('open-upgrade', openUpgrade as EventListener)
     window.addEventListener('open-terms', openTerms as EventListener)
     window.addEventListener('open-storage-setup', openStorageSetup as EventListener)
+    window.addEventListener('open-settings', openSettings as EventListener)
     return () => {
       window.removeEventListener('open-upgrade', openUpgrade as EventListener)
       window.removeEventListener('open-terms', openTerms as EventListener)
       window.removeEventListener('open-storage-setup', openStorageSetup as EventListener)
+      window.removeEventListener('open-settings', openSettings as EventListener)
     }
   }, [])
 
   useEffect(() => {
-    const handlePremiumChange = () => setIsPremium(configStore.isPremium())
+    const handlePremiumChange = () => setPremiumTier(getPremiumTier())
     window.addEventListener('premium-changed', handlePremiumChange)
     return () => window.removeEventListener('premium-changed', handlePremiumChange)
-  }, [configStore])
+  }, [])
 
   // Check if user has completed onboarding before
-  // NOTE: All user data (premium status, passwords, master hash, passkey) is stored in localStorage
-  // and persists across app updates. This ensures no data loss during updates.
+  // NOTE: Premium status and hints are stored in localStorage; the encrypted vault lives on disk.
+  // This ensures no data loss during updates.
   // See DATA_PERSISTENCE.md for details.
   useEffect(() => {
     const hasCompletedOnboarding = localStorage.getItem('passgen-onboarding-complete')
     if (hasCompletedOnboarding === 'true') {
       setShowOnboarding(false)
-      // Check if storage is configured
-      const config = storageManager.getStorageConfig()
-      if (config) {
-        setMode('auth')
-      } else {
-        setMode('setup')
-      }
+      // Determine whether a vault already exists
+      ;(async () => {
+        try {
+          const status = await storageManager.getVaultStatus()
+          setMode(status.hasVault ? 'auth' : 'setup')
+        } catch {
+          setMode('setup')
+        }
+      })()
     }
     // Load password hint
     const savedHint = localStorage.getItem('passgen-password-hint')
@@ -95,115 +103,33 @@ function App() {
   const handleStorageConfigured = async (config: any) => {
     try {
       await storageManager.initializeStorage(config)
-      const hasMasterHash = !!localStorage.getItem('passgen-master-hash')
-      if (hasMasterHash) {
-        setMode('vault')
-      } else {
-        setMode('auth')
-      }
+      setMode((prev) => (prev === 'vault' ? 'vault' : 'auth'))
     } catch (error) {
-      alert('Failed to configure storage: ' + (error as Error).message)
+      alert(t('Failed to configure storage: {{message}}', { message: (error as Error).message }))
     }
   }
 
-  const handleMasterPasswordSubmit = () => {
+  const handleMasterPasswordSubmit = async () => {
     if (!masterPasswordInput || masterPasswordInput.length < 8) {
-      alert('Master password must be at least 8 characters')
+      alert(t('Master password must be at least 8 characters'))
       return
     }
 
-    const cfg = new ConfigStore()
-    const inputHash = CryptoJS.SHA256(masterPasswordInput).toString()
-    const existingHash = cfg.getMasterPasswordHash()
-    let hasVault = false
     try {
-      const raw = localStorage.getItem('passgen-vault-data')
-      hasVault = !!raw && Array.isArray(JSON.parse(raw)) && JSON.parse(raw).length > 0
-    } catch {}
-
-    // First-time setup: only persist hash when no existing vault
-    if (!existingHash) {
-      if (hasVault) {
-        alert('A vault already exists. Please enter your original master password or use Reset App to start fresh.')
-        return
-      }
-      cfg.setMasterPasswordHash(inputHash)
-      // Save password hint if provided
-      if (passwordHintInput.trim()) {
+      const status = await storageManager.getVaultStatus()
+      if (!status.hasVault && passwordHintInput.trim()) {
         localStorage.setItem('passgen-password-hint', passwordHintInput.trim())
         setPasswordHint(passwordHintInput.trim())
       }
-    } else if (existingHash !== inputHash) {
-      alert('Incorrect master password. Please try again.')
+
+      setMasterPassword(masterPasswordInput)
+      await storageManager.initializeEncryption(masterPasswordInput)
+    } catch (error) {
+      alert((error as Error).message || t('Incorrect master password. Please try again.'))
       return
     }
-
-    setMasterPassword(masterPasswordInput)
-    storageManager.initializeEncryption(masterPasswordInput)
     // Notify main that vault is unlocked (for extension session)
-    try { (window as any).electronAPI && (window as any).electronAPI.maximize } catch {}
-    try { (window as any).electron && (window as any).electron.payment; } catch {}
-    try { (window as any).electron && (window as any).electronAPI; } catch {}
-    try { (window as any).electron && (window as any).electron.clipboard; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
-    try { (window as any).electron && (window as any).electron; } catch {}
+    try { (window as any).electronAPI?.vaultUnlocked?.() } catch {}
     setMode('vault')
   }
 
@@ -211,20 +137,20 @@ function App() {
     try {
       // Check if WebAuthn is supported
       if (!navigator.credentials || !navigator.credentials.get) {
-        alert('Passkey is not supported on this device')
+        alert(t('Passkey is not supported on this device'))
         return
       }
 
       // Check if we're in a secure context
       if (!window.isSecureContext) {
-        alert('Passkey requires a secure context. Please use your master password.')
+        alert(t('Passkey requires a secure context. Please use your master password.'))
         return
       }
 
       const cfg = new ConfigStore()
       const cred = cfg.getPasskeyCredential()
       if (!cred || !cred.credentialId) {
-        alert('No passkey found. Please use your master password.')
+        alert(t('No passkey found. Please use your master password.'))
         return
       }
 
@@ -239,7 +165,7 @@ function App() {
       })
 
       if (!assertion) {
-        alert('Passkey verification cancelled')
+        alert(t('Passkey verification cancelled'))
         return
       }
 
@@ -250,17 +176,17 @@ function App() {
 
       if (assertionId === cred.credentialId) {
         // Passkey verified, need to get master password to initialize encryption
-        alert('Passkey verified! Now please enter your master password to unlock the vault.')
+        alert(t('Passkey verified! Now please enter your master password to unlock the vault.'))
         setMasterPasswordInput('')
       } else {
-        alert('Passkey does not match. Please use your master password.')
+        alert(t('Passkey does not match. Please use your master password.'))
       }
     } catch (e) {
       const errorMsg = (e as Error).message
       if (errorMsg.includes('cancel') || errorMsg.includes('dismissed')) {
-        alert('Passkey verification cancelled.')
+        alert(t('Passkey verification cancelled.'))
       } else {
-        alert('Passkey verification failed: ' + errorMsg)
+        alert(t('Passkey verification failed: {{message}}', { message: errorMsg }))
       }
     }
   }
@@ -273,7 +199,7 @@ function App() {
     if (options.symbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?'
 
     if (charset === '') {
-      alert('Please select at least one character type')
+      alert(t('Please select at least one character type'))
       return
     }
 
@@ -318,7 +244,7 @@ function App() {
   }
 
   const handleResetApp = () => {
-    const proceed = confirm('This will clear local data and restart the setup wizard. Continue?')
+    const proceed = confirm(t('Clear local data and restart the setup wizard. Continue?'))
     if (!proceed) return
     storageManager.resetApp()
     setMasterPassword('')
@@ -345,8 +271,8 @@ function App() {
       <CustomTitleBar />
       <div className="container">
         <div className="app-header">
-          <button className="link-btn" onClick={handleResetApp} title="Clear local data and restart wizard">
-            ↺ Reset App
+          <button className="link-btn" onClick={handleResetApp} title={t('Clear local data and restart wizard')}>
+            ↺ {t('Reset App')}
           </button>
         </div>
         {mode === 'setup' && (
@@ -359,22 +285,22 @@ function App() {
               <img src="icon.png" alt="PassGen Logo" width="80" height="80" />
             </div>
             <h1 className="auth-title">PassGen</h1>
-            <p className="auth-subtitle">{localStorage.getItem('passgen-master-hash') ? 'Enter your master password' : 'Set a new master password'}</p>
+            <p className="auth-subtitle">{localStorage.getItem('passgen-master-hash') ? t('Enter your master password') : t('Set a new master password')}</p>
             <div className="auth-form">
               <div className="password-input-wrapper">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={masterPasswordInput}
                   onChange={(e) => setMasterPasswordInput(e.target.value)}
-                  placeholder={localStorage.getItem('passgen-master-hash') ? 'Master Password (min 8 characters)' : 'Create Master Password (min 8 characters)'}
-                  className="auth-input"
+                  placeholder={localStorage.getItem('passgen-master-hash') ? t('Master Password (min 8 characters)') : t('Create Master Password (min 8 characters)')}
+                  className="auth-input ltr-input"
                   onKeyPress={(e) => e.key === 'Enter' && handleMasterPasswordSubmit()}
                 />
                 <button
                   type="button"
                   className="toggle-password-btn"
                   onClick={() => setShowPassword(!showPassword)}
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  title={showPassword ? t('Hide password') : t('Show password')}
                 >
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -392,23 +318,23 @@ function App() {
                   type="text"
                   value={passwordHintInput}
                   onChange={(e) => setPasswordHintInput(e.target.value)}
-                  placeholder="Password hint (optional)"
+                  placeholder={t('Password hint (optional)')}
                   className="auth-input hint-input"
                 />
               )}
               {passwordHint && localStorage.getItem('passgen-master-hash') && (
-                <p className="password-hint">💡 Hint: {passwordHint}</p>
+                <p className="password-hint">💡 {t('Hint: {{hint}}', { hint: passwordHint })}</p>
               )}
               <button onClick={handleMasterPasswordSubmit} className="auth-btn">
-                {localStorage.getItem('passgen-master-hash') ? 'Unlock Vault' : 'Set Master Password'}
+                {localStorage.getItem('passgen-master-hash') ? t('Unlock Vault') : t('Set Master Password')}
               </button>
               {((import.meta as any)?.env?.DEV === true) && localStorage.getItem('passgen-passkey-credential') && (
                 <button onClick={handlePasskeyUnlock} className="auth-btn auth-btn-secondary">
-                  Unlock with Passkey (Dev Only)
+                  {t('Unlock with Passkey (Dev Only)')}
                 </button>
               )}
               <p className="auth-note">
-                This password encrypts/decrypts your stored passwords. Don't forget it!
+                {t("This password encrypts/decrypts your stored passwords. Don't forget it!")}
               </p>
             </div>
           </div>
@@ -421,19 +347,19 @@ function App() {
                 onClick={() => setMode('vault')}
                 className="active"
               >
-                🗄️ Vault
+                🗄️ {t('Vault')}
               </button>
               <button
                 onClick={() => setMode('generator')}
                 className=""
               >
-                🔧 Generator
+                🔧 {t('Generator')}
               </button>
             </div>
             {!isPremium && (
               <div className="upgrade-inline-banner">
-                <span>Free plan: 4 passwords. Upgrade to unlock unlimited entries and sync.</span>
-                <button className="upgrade-inline-btn" onClick={() => setShowUpgrade(true)}>⭐ Upgrade</button>
+                <span>{t('Free plan: 4 passwords. Upgrade to unlock unlimited entries and sync.')}</span>
+                <button className="upgrade-inline-btn" onClick={() => setShowUpgrade(true)}>⭐ {t('Upgrade')}</button>
               </div>
             )}
             <PasswordVault storageManager={storageManager} onGenerateNew={switchToGenerator} />
@@ -447,46 +373,46 @@ function App() {
                 onClick={() => setMode('vault')}
                 className=""
               >
-                🗄️ Vault
+                🗄️ {t('Vault')}
               </button>
               <button
                 onClick={() => setMode('generator')}
                 className="active"
               >
-                🔧 Generator
+                🔧 {t('Generator')}
               </button>
             </div>
             {!isPremium && (
               <div className="upgrade-inline-banner">
-                <span>Free plan: 4 passwords. Upgrade to unlock unlimited entries and sync.</span>
-                <button className="upgrade-inline-btn" onClick={() => setShowUpgrade(true)}>⭐ Upgrade</button>
+                <span>{t('Free plan: 4 passwords. Upgrade to unlock unlimited entries and sync.')}</span>
+                <button className="upgrade-inline-btn" onClick={() => setShowUpgrade(true)}>⭐ {t('Upgrade')}</button>
               </div>
             )}
             
             <h1>🔐 PassGen</h1>
-            <p className="subtitle">Generate Secure Passwords</p>
+            <p className="subtitle">{t('Generate Secure Passwords')}</p>
 
             <div className="password-display">
               <input
                 type="text"
                 value={password}
                 readOnly
-                placeholder="Click generate to create password"
-                className="password-input"
+                placeholder={t('Click generate to create password')}
+                className="password-input ltr-input"
               />
               <button
                 onClick={copyToClipboard}
                 className="copy-btn"
                 disabled={!password}
               >
-                {copied ? '✓ Copied!' : '📋 Copy'}
+                {copied ? `✓ ${t('Copied!')}` : `📋 ${t('Copy')}`}
               </button>
             </div>
 
             <div className="options">
               <div className="option-group">
                 <label htmlFor="length">
-                  Password Length: <strong>{options.length}</strong>
+                  {t('Password Length')}: <strong>{options.length}</strong>
                 </label>
                 <input
                   id="length"
@@ -506,7 +432,7 @@ function App() {
                     checked={options.uppercase}
                     onChange={(e) => handleOptionChange('uppercase', e.target.checked)}
                   />
-                  <span>Uppercase Letters (A-Z)</span>
+                  <span>{t('Uppercase Letters (A-Z)')}</span>
                 </label>
 
                 <label className="checkbox-label">
@@ -515,7 +441,7 @@ function App() {
                     checked={options.lowercase}
                     onChange={(e) => handleOptionChange('lowercase', e.target.checked)}
                   />
-                  <span>Lowercase Letters (a-z)</span>
+                  <span>{t('Lowercase Letters (a-z)')}</span>
                 </label>
 
                 <label className="checkbox-label">
@@ -524,7 +450,7 @@ function App() {
                     checked={options.numbers}
                     onChange={(e) => handleOptionChange('numbers', e.target.checked)}
                   />
-                  <span>Numbers (0-9)</span>
+                  <span>{t('Numbers (0-9)')}</span>
                 </label>
 
                 <label className="checkbox-label">
@@ -533,13 +459,13 @@ function App() {
                     checked={options.symbols}
                     onChange={(e) => handleOptionChange('symbols', e.target.checked)}
                   />
-                  <span>Symbols (!@#$...)</span>
+                  <span>{t('Symbols (!@#$...)')}</span>
                 </label>
               </div>
             </div>
 
             <button onClick={generatePassword} className="generate-btn">
-              Generate Password
+              {t('Generate Password')}
             </button>
           </>
         )}
@@ -548,6 +474,7 @@ function App() {
       <UpgradeModal open={showUpgrade} onClose={()=>setShowUpgrade(false)} />
       <TermsModal open={showTerms} onClose={()=>setShowTerms(false)} />
       <StorageSetup open={showStorageSetup} onClose={()=>setShowStorageSetup(false)} onConfigured={handleStorageConfigured} />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   )
 }

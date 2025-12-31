@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './SplashScreen.css'
+import { useI18n } from '../services/i18n'
 
 interface SplashScreenProps {
   onComplete: () => void
@@ -7,6 +8,7 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [fadeOut, setFadeOut] = useState(false)
+  const { t } = useI18n()
 
   useEffect(() => {
     // Show splash for 3.5 seconds, then fade out over 0.5s
@@ -31,7 +33,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           <img src="./logo-animated.png" alt="PassGen Logo" className="splash-logo" />
         </div>
         <h1 className="app-title">PassGen</h1>
-        <p className="app-tagline">Secure Password Manager</p>
+        <p className="app-tagline">{t('Secure Password Manager')}</p>
         <div className="loading-dots">
           <span></span>
           <span></span>

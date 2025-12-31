@@ -1,117 +1,80 @@
 # Data Persistence & Update Safety
 
 ## Overview
-PassGen uses **browser localStorage** for all local data storage. This ensures that **user data persists across app updates** and is **never deleted during installation or updates**.
+PassGen stores the **encrypted vault file on disk** and keeps lightweight app settings in localStorage and electron-store. This ensures user data persists across updates without exposing plaintext or the master password.
 
 ## What Gets Preserved During App Updates
+
+### ✅ Encrypted Vault File (Local Tier A)
+- **Path**: `%APPDATA%/PassGen/Vault/passgen-vault.pgvault` (Electron userData)
+- **Format**: JSON wrapper containing header + ciphertext
+- **Encryption**: Argon2id-derived key (or PBKDF2 fallback) + authenticated encryption
+- **Behavior**: Vault persists across updates; backups stored in `VaultBackups/` when enabled.
 
 ### ✅ Premium Subscription
 - **Key**: `passgen-premium`
 - **Value**: `'true'` or `'false'`
-- **Behavior**: Premium status persists across updates. If a user activates premium, it remains active after updating the app.
+- **Behavior**: Premium status persists across updates.
 
-### ✅ Encrypted Passwords (Vault)
-- **Key**: `passgen-vault-data`
-- **Value**: Encrypted JSON array of password entries
-- **Encryption**: AES-256 with master password as key
-- **Behavior**: All stored passwords persist across updates. No password loss during update.
-
-### ✅ Master Password Hash
-- **Key**: `passgen-master-hash`
-- **Value**: SHA-256 hash of user's master password
-- **Behavior**: Persists across updates. User can unlock vault with same master password after update.
+### ✅ Premium Tier (if set)
+- **Key**: `passgen-premium-tier`
+- **Value**: `free | pro | cloud | byos`
+- **Behavior**: Persists across updates for tier gating.
 
 ### ✅ Installation ID
 - **Key**: `passgen-install-id`
 - **Value**: UUID-format unique identifier
-- **Behavior**: Persists across updates. Used for activation code generation/verification.
-
-### ✅ Storage Configuration
-- **Key**: `passgen-storage-config`
-- **Value**: JSON config object (provider: local | google-drive | s3)
-- **Behavior**: Cloud storage settings (if configured) persist across updates.
+- **Behavior**: Persists across updates. Used for activation code verification.
 
 ### ✅ Passkey Credential
 - **Key**: `passgen-passkey-credential`
-- **Value**: JSON object with credentialId and publicKey
-- **Behavior**: Biometric/Windows Hello registration persists across updates.
+- **Value**: JSON object with credentialId and publicKey marker
+- **Behavior**: Persists across updates for passkey unlock.
 
-### ✅ User Email
-- **Key**: `passgen-user-email`
-- **Value**: User's email address
+### ✅ User Email / Hints
+- **Keys**: `passgen-user-email`, `passgen-password-hint`
+- **Behavior**: Persist across updates.
+
+### ✅ Storage Settings (non-secret)
+- **Store**: electron-store (`passgen-settings.json`)
+- **Values**: active provider ID + local vault path
 - **Behavior**: Persists across updates.
 
-### ✅ Onboarding Status
-- **Key**: `passgen-onboarding-complete`
-- **Value**: `'true'` or `'false'`
-- **Behavior**: Persists across updates. Returning users skip onboarding wizard.
+## What Is NOT Stored
+- **Master Password**: never stored. Only the vault header stores salt + KDF parameters.
+- **Provider Secrets**: tokens/keys are stored **inside the encrypted vault payload** only.
 
 ## What Gets Cleared Only On User Request
-
-The following are **only cleared** when the user explicitly clicks "Reset App" (Menu → Reset App):
-- All `passgen-*` keys
-- Master password hash
-- Vault data
-- Premium status
-- Passkey credential
-
-**Updates do not trigger a reset**, so no automatic data loss occurs.
+The following are cleared when the user explicitly resets the app:
+- `passgen-*` localStorage keys (premium status, passkeys, onboarding)
+- Encrypted vault file and backups (if removed by the user)
 
 ## Update Process (No Data Loss)
-1. User downloads and installs new PassGen version
-2. Electron/NSIS installer replaces the application code
-3. Browser localStorage remains untouched
-4. App launches → checks localStorage → finds existing data
-5. All passwords, premium status, master hash loaded
-6. User can immediately access vault with existing master password
-7. No re-authentication or data re-entry required
-
-## Technical Implementation
-
-### Storage Manager (src/services/storageManager.ts)
-- Uses localStorage for vault data: `passgen-vault-data`
-- All entries are encrypted before storage
-- No in-memory persistence; data re-decrypted on each session
-
-### Config Store (src/services/configStore.ts)
-- Uses localStorage for all configuration:
-  - Premium status
-  - Master password hash
-  - Installation ID
-  - Storage config
-  - Passkey credential
-  - User email
-
-### Data Never Cleared Automatically
-The only functions that clear data are:
-1. `resetApp()` - **User-triggered** via Menu → Reset App
-2. Password deletion - **User-triggered** for individual entries
+1. User installs a new PassGen version
+2. App code is replaced by the installer
+3. Vault file + local settings remain untouched
+4. App launches, detects vault file, and prompts for master password
+5. User unlocks vault with existing password
 
 ## Migration & Backup
 
 ### Export Vault Backup (Premium)
-Users can export encrypted vault as JSON file for backup/migration:
+Users can export an encrypted vault file for backup:
 ```
-Actions → Export Vault Backup → Save to file
+Actions → Export Vault Backup → Save file
 ```
 
 ### Import Vault Backup (Premium)
-Users can restore vault from backup file:
+Users can restore a vault backup:
 ```
 Actions → Import Vault Backup → Select backup file
 ```
 
 ## Summary
 
-✅ **Premium subscriptions** persist across updates  
-✅ **All stored passwords** persist across updates  
-✅ **Master password** setting persists across updates  
-✅ **Installation ID** persists across updates  
-✅ **Biometric passkey** registration persists across updates  
+✅ Encrypted vault file persists across updates
+✅ Premium status and passkeys persist across updates
+✅ Master password is never stored
+✅ Provider secrets remain encrypted inside the vault
 
-**Data is only lost if:**
-- User explicitly clicks "Reset App"
-- User uninstalls app and deletes AppData/localStorage
-- Hard disk failure
-
-**Safe to update!** All user data is preserved.
+**Safe to update!** All user data stays intact.

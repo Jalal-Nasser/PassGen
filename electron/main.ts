@@ -8,10 +8,13 @@ try {
   dotenv.config()
 } catch {}
 import * as path from 'path'
+import { VaultRepository } from './vault/vaultRepository'
+import { runVaultSelfTests } from './vault/selfTest'
 
 let mainWindow: BrowserWindow | null = null;
 let sessionToken: string | null = null;
 let bridgeServer: http.Server | null = null;  // HTTP server for extension bridge (all modes)
+const vaultRepository = new VaultRepository()
 function resolveIconPath() {
   try {
     if (app.isPackaged) {
@@ -78,6 +81,13 @@ function setApplicationMenu() {
         {
           label: 'File',
           submenu: [
+            {
+              label: 'Settings',
+              accelerator: 'CmdOrCtrl+,',
+              click: () => {
+                mainWindow?.webContents.executeJavaScript(`window.dispatchEvent(new Event('open-settings'))`)
+              }
+            },
             ...(result === 'true' ? [] : [{
               label: 'Upgrade to Premium',
               click: () => {
@@ -152,6 +162,13 @@ function buildDefaultMenu() {
     {
       label: 'File',
       submenu: [
+        {
+          label: 'Settings',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => {
+            mainWindow?.webContents.executeJavaScript(`window.dispatchEvent(new Event('open-settings'))`)
+          }
+        },
         {
           label: 'Upgrade to Premium',
           click: () => {
@@ -384,6 +401,15 @@ if (!gotTheLock) {
   // automatically persists localStorage to disk in app userData directory
 
   app.whenReady().then(() => {
+    if (process.argv.includes('--vault-self-test')) {
+      runVaultSelfTests()
+        .then(() => app.quit())
+        .catch((error) => {
+          console.error('[VAULT TEST] Failed:', error)
+          app.quit()
+        })
+      return
+    }
     createWindow()
     setApplicationMenu()
     // Initial update check and periodic checks every 6 hours
@@ -537,6 +563,76 @@ ipcMain.handle('clipboard:readText', async () => {
 // Expose current session token to renderer (read-only)
 ipcMain.handle('bridge:getToken', async () => {
   return sessionToken || ''
+})
+
+// Vault storage IPC
+ipcMain.handle('vault:status', async () => {
+  return vaultRepository.getStatus()
+})
+
+ipcMain.handle('vault:unlock', async (_event, masterPassword: string) => {
+  return vaultRepository.unlock(masterPassword)
+})
+
+ipcMain.handle('vault:list', async () => {
+  return vaultRepository.listEntries()
+})
+
+ipcMain.handle('vault:add', async (_event, entry) => {
+  return vaultRepository.addEntry(entry)
+})
+
+ipcMain.handle('vault:update', async (_event, entry) => {
+  return vaultRepository.updateEntry(entry)
+})
+
+ipcMain.handle('vault:exportEncrypted', async () => {
+  return vaultRepository.exportEncrypted()
+})
+
+ipcMain.handle('vault:importEncrypted', async (_event, data: string) => {
+  return vaultRepository.importEncrypted(data)
+})
+
+ipcMain.handle('vault:importLegacy', async (_event, entries: Array<{ filename: string; data: string }>, masterPassword: string) => {
+  return vaultRepository.importLegacyEntries(entries, masterPassword)
+})
+
+ipcMain.handle('vault:repair', async () => {
+  return vaultRepository.repairVault()
+})
+
+ipcMain.handle('storage:configure', async (_event, config) => {
+  return vaultRepository.configureStorage(config)
+})
+
+ipcMain.handle('storage:providerStatus', async () => {
+  return vaultRepository.getProviderStatus()
+})
+
+ipcMain.handle('storage:selectVaultFolder', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Select Vault Folder',
+    properties: ['openDirectory', 'createDirectory']
+  })
+  if (result.canceled || result.filePaths.length === 0) return { success: false }
+  return { success: true, folder: result.filePaths[0] }
+})
+
+ipcMain.handle('storage:testS3', async (_event, config) => {
+  return vaultRepository.testS3Connection(config)
+})
+
+ipcMain.handle('storage:s3SignedRequest', async (_event, config, key: string) => {
+  return vaultRepository.getSignedS3Request(config, key)
+})
+
+ipcMain.handle('storage:googleDriveConnect', async () => {
+  return vaultRepository.connectGoogleDrive()
+})
+
+ipcMain.handle('storage:googleDriveDisconnect', async () => {
+  return vaultRepository.disconnectGoogleDrive()
 })
 
 // Vault export/import file dialogs

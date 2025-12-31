@@ -1,26 +1,20 @@
 // Simple localStorage-based config store
 // No Node.js dependencies - safe for renderer process
 import CryptoJS from 'crypto-js'
+import type { ProviderId, S3CompatibleConfig } from './storageTypes'
 
 export interface StorageConfig {
-  provider: 'local' | 'google-drive' | 's3' | 'digitalocean';
+  provider: ProviderId;
+  local?: {
+    vaultFolder?: string;
+    backupsEnabled?: boolean;
+    keepLast?: number;
+  };
   googleDrive?: {
-    clientId: string;
-    clientSecret: string;
     tokens?: any;
+    accountEmail?: string;
   };
-  s3?: {
-    accessKeyId: string;
-    secretAccessKey: string;
-    region: string;
-    bucket: string;
-  };
-  digitalocean?: {
-    accessKeyId: string;
-    secretAccessKey: string;
-    region: string;
-    bucket: string;
-  };
+  s3Compatible?: S3CompatibleConfig;
 }
 
 export class ConfigStore {

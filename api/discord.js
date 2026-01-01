@@ -1,6 +1,6 @@
-import type { IncomingMessage, ServerResponse } from 'http'
-import nacl from 'tweetnacl'
-import { createClient } from '@supabase/supabase-js'
+const nacl = require('tweetnacl')
+const { createClient } = require('@supabase/supabase-js')
+const { TextEncoder } = require('util')
 
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY || ''
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || ''
@@ -21,20 +21,15 @@ const FROM_EMAIL = normalizeFromAddress(RAW_FROM_EMAIL) || DEFAULT_FROM_EMAIL
 const REPLY_TO_EMAIL = isValidEmail(RAW_REPLY_TO_EMAIL) ? RAW_REPLY_TO_EMAIL : undefined
 
 const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null
+const encoder = new TextEncoder()
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    res.statusCode = 405
-    res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify({ error: 'Method not allowed' }))
-    return
+    return respondJson(res, { error: 'Method not allowed' }, 405)
   }
 
   if (!DISCORD_PUBLIC_KEY || !supabase) {
-    res.statusCode = 500
-    res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify({ error: 'Missing server configuration' }))
-    return
+    return respondJson(res, { error: 'Missing server configuration' }, 500)
   }
 
   const signature = String(req.headers['x-signature-ed25519'] || '')
@@ -42,40 +37,39 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const rawBody = await readBody(req)
 
   if (!verifySignature(signature, timestamp, rawBody, DISCORD_PUBLIC_KEY)) {
-    res.statusCode = 401
-    res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify({ error: 'Invalid request signature' }))
-    return
+    return respondJson(res, { error: 'Invalid request signature' }, 401)
   }
 
-  const payload = JSON.parse(rawBody)
+  let payload
+  try {
+    payload = JSON.parse(rawBody)
+  } catch {
+    return respondJson(res, { error: 'Invalid JSON' }, 400)
+  }
 
   if (payload?.type === 1) {
-    respondJson(res, { type: 1 })
-    return
+    return respondJson(res, { type: 1 }, 200)
   }
 
   try {
     if (payload?.type === 3 && payload?.data?.custom_id?.startsWith('activate:')) {
       const response = await handleActivateButton(payload)
-      respondJson(res, response)
-      return
+      return respondJson(res, response, 200)
     }
 
     if (payload?.type === 2 && payload?.data?.name) {
       const response = await handleCommand(payload)
-      respondJson(res, response)
-      return
+      return respondJson(res, response, 200)
     }
 
-    respondJson(res, { type: 4, data: { content: 'Unsupported interaction.', flags: 64 } })
-  } catch (error: any) {
+    return respondJson(res, { type: 4, data: { content: 'Unsupported interaction.', flags: 64 } }, 200)
+  } catch (error) {
     console.error('Discord handler error:', error)
-    respondJson(res, { type: 4, data: { content: `Error: ${error?.message || 'Unknown error'}`, flags: 64 } })
+    return respondJson(res, { type: 4, data: { content: `Error: ${error?.message || 'Unknown error'}`, flags: 64 } }, 200)
   }
 }
 
-async function handleCommand(payload: any) {
+async function handleCommand(payload) {
   const commandName = payload.data?.name
 
   if (commandName === 'activate') {
@@ -84,7 +78,7 @@ async function handleCommand(payload: any) {
       return { type: 4, data: { content: 'Install ID is required.', flags: 64 } }
     }
 
-    const { data: request, error } = await supabase!
+    const { data: request, error } = await supabase
       .from('activation_requests')
       .select('*')
       .eq('install_id', installId)
@@ -113,7 +107,7 @@ async function handleCommand(payload: any) {
   }
 
   if (commandName === 'pending') {
-    const { data: requests, error } = await supabase!
+    const { data: requests, error } = await supabase
       .from('activation_requests')
       .select('*')
       .eq('status', 'pending')
@@ -128,14 +122,12 @@ async function handleCommand(payload: any) {
       return { type: 4, data: { content: 'No pending activation requests.', flags: 64 } }
     }
 
-    const lines = requests.map((req: any, idx: number) => {
-      return `${idx + 1}. ${req.user_email} (${req.install_id})`
-    })
+    const lines = requests.map((req, idx) => `${idx + 1}. ${req.user_email} (${req.install_id})`)
     return { type: 4, data: { content: lines.join('\n'), flags: 64 } }
   }
 
   if (commandName === 'stats') {
-    const { data: stats, error } = await supabase!
+    const { data: stats, error } = await supabase
       .from('dashboard_stats')
       .select('*')
       .single()
@@ -151,7 +143,7 @@ async function handleCommand(payload: any) {
   return { type: 4, data: { content: 'Unknown command.', flags: 64 } }
 }
 
-async function handleActivateButton(payload: any) {
+async function handleActivateButton(payload) {
   const customId = payload.data?.custom_id || ''
   const requestId = customId.split(':')[1]
 
@@ -159,7 +151,7 @@ async function handleActivateButton(payload: any) {
     return { type: 4, data: { content: 'Invalid activation button.', flags: 64 } }
   }
 
-  const { data: request, error } = await supabase!
+  const { data: request, error } = await supabase
     .from('activation_requests')
     .select('*')
     .eq('id', requestId)
@@ -187,9 +179,9 @@ async function handleActivateButton(payload: any) {
   return { type: 4, data: { content: `Activated. Code: ${activationCode}`, flags: 64 } }
 }
 
-async function activateRequest(request: any) {
+async function activateRequest(request) {
   const activationCode = generateActivationCode(request.install_id, request.user_email)
-  const { error } = await supabase!
+  const { error } = await supabase
     .from('activation_requests')
     .update({
       status: 'activated',
@@ -205,7 +197,7 @@ async function activateRequest(request: any) {
   return activationCode
 }
 
-async function disableActivationButton(payload: any) {
+async function disableActivationButton(payload) {
   if (!DISCORD_BOT_TOKEN) return
   const channelId = payload.channel_id
   const messageId = payload.message?.id
@@ -237,7 +229,7 @@ async function disableActivationButton(payload: any) {
   })
 }
 
-async function postPublicActivation(payload: any, email: string) {
+async function postPublicActivation(payload, email) {
   if (!DISCORD_BOT_TOKEN) return
   const channelId = payload.channel_id
   if (!channelId) return
@@ -259,10 +251,10 @@ async function postPublicActivation(payload: any, email: string) {
   })
 }
 
-async function sendActivationEmail(email: string, code: string, installId: string) {
+async function sendActivationEmail(email, code, installId) {
   if (!RESEND_API_KEY) return
   try {
-    const { Resend } = await import('resend')
+    const { Resend } = require('resend')
     const resend = new Resend(RESEND_API_KEY)
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -290,31 +282,26 @@ async function sendActivationEmail(email: string, code: string, installId: strin
       reply_to: REPLY_TO_EMAIL
     })
   } catch (error) {
-    console.warn('Resend email failed:', (error as any)?.message || error)
+    console.warn('Resend email failed:', error?.message || error)
   }
 }
 
-function generateActivationCode(installId: string, email: string) {
+function generateActivationCode(installId, email) {
   const secret =
     process.env.SELLER_SECRET ||
     process.env.VITE_SELLER_SECRET ||
     'W1IcMo9/5Kw7Mu+kFsXgoep4bcKzfvofElTnvra7PD8='
-  const crypto = awaitImportCrypto()
+  const crypto = require('crypto')
   const data = `${installId}|${String(email || '').trim().toLowerCase()}|${secret}`
   const digest = crypto.createHash('sha256').update(data).digest('hex')
   return digest.substring(0, 10).toUpperCase()
 }
 
-function awaitImportCrypto() {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require('crypto')
-}
-
-function isValidEmail(value: string | undefined) {
+function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim())
 }
 
-function normalizeFromAddress(value: string | undefined) {
+function normalizeFromAddress(value) {
   const raw = String(value || '').trim()
   if (!raw) return null
   if (raw.includes('<') && raw.includes('>')) return raw
@@ -325,21 +312,22 @@ function normalizeFromAddress(value: string | undefined) {
   return `${name || 'PassGen'} <${email}>`
 }
 
-function getOption(payload: any, name: string) {
+function getOption(payload, name) {
   const options = payload?.data?.options || []
-  const match = options.find((opt: any) => opt?.name === name)
+  const match = options.find((opt) => opt?.name === name)
   return match?.value
 }
 
-function respondJson(res: ServerResponse, data: any) {
-  res.statusCode = 200
+function respondJson(res, data, status = 200) {
+  res.statusCode = status
   res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify(data))
 }
 
-async function readBody(req: IncomingMessage) {
-  return new Promise<string>((resolve, reject) => {
+async function readBody(req) {
+  return new Promise((resolve, reject) => {
     let data = ''
+    req.setEncoding('utf8')
     req.on('data', chunk => {
       data += chunk
     })
@@ -348,20 +336,20 @@ async function readBody(req: IncomingMessage) {
   })
 }
 
-function verifySignature(signature: string, timestamp: string, body: string, publicKey: string) {
+function verifySignature(signature, timestamp, body, publicKey) {
   if (!signature || !timestamp || !body || !publicKey) return false
   try {
-    const message = new TextEncoder().encode(timestamp + body)
+    const message = encoder.encode(timestamp + body)
     const sigBytes = hexToBytes(signature)
     const keyBytes = hexToBytes(publicKey)
     return nacl.sign.detached.verify(message, sigBytes, keyBytes)
   } catch (error) {
-    console.warn('Signature verification failed:', (error as any)?.message || error)
+    console.warn('Signature verification failed:', error?.message || error)
     return false
   }
 }
 
-function hexToBytes(hex: string) {
+function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2)
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(hex.substr(i * 2, 2), 16)

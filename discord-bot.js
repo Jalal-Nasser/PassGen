@@ -58,7 +58,7 @@ client.once('ready', async () => {
 
 // Handle slash commands
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
+  if (!interaction.isChatInputCommand()) return
 
   const { commandName } = interaction
 
@@ -78,10 +78,12 @@ client.on('interactionCreate', async (interaction) => {
     }
   } catch (error) {
     console.error('Command error:', error)
-    await interaction.reply({
-      content: '❌ An error occurred while processing your command.',
-      ephemeral: true
-    })
+    const message = '❌ An error occurred while processing your command.'
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(message)
+    } else {
+      await interaction.reply({ content: message, ephemeral: true })
+    }
   }
 })
 
@@ -147,8 +149,8 @@ async function handleActivateCommand(interaction) {
       return
     }
 
-    // Generate activation code if not provided
-    const activationCode = customCode || generateActivationCode()
+    // Generate activation code compatible with the app if not provided
+    const activationCode = customCode || generateActivationCode(installId, request.user_email)
 
     // Update the request
     const { error: updateError } = await supabase
@@ -222,14 +224,16 @@ async function handleStatsCommand(interaction) {
   }
 }
 
-// Generate activation code
-function generateActivationCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let code = ''
-  for (let i = 0; i < 16; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return code
+// Generate activation code compatible with the app (SHA-256 of installId|email|secret)
+function generateActivationCode(installId, email) {
+  const secret =
+    process.env.SELLER_SECRET ||
+    process.env.VITE_SELLER_SECRET ||
+    'W1IcMo9/5Kw7Mu+kFsXgoep4bcKzfvofElTnvra7PD8='
+  const crypto = require('crypto')
+  const data = `${installId}|${String(email || '').trim().toLowerCase()}|${secret}`
+  const digest = crypto.createHash('sha256').update(data).digest('hex')
+  return digest.substring(0, 10).toUpperCase()
 }
 
 // Login bot

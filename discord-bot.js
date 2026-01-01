@@ -29,8 +29,11 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM_EMAIL = process.env.FROM_EMAIL || 'PassGen <activation@mdeploy.dev>'
-const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || 'activation@mdeploy.dev'
+const RAW_FROM_EMAIL = process.env.FROM_EMAIL
+const RAW_REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || 'activation@mdeploy.dev'
+const DEFAULT_FROM_EMAIL = 'PassGen <activation@mdeploy.dev>'
+const FROM_EMAIL = normalizeFromAddress(RAW_FROM_EMAIL) || DEFAULT_FROM_EMAIL
+const REPLY_TO_EMAIL = isValidEmail(RAW_REPLY_TO_EMAIL) ? RAW_REPLY_TO_EMAIL : undefined
 
 // Bot ready event
 client.once('ready', async () => {
@@ -217,7 +220,12 @@ async function handleActivateCommand(interaction) {
         ephemeral: true
       })
     } else if (emailResult.ok) {
-      await interaction.followUp({ content: '✅ Activation code emailed to the user.', ephemeral: true })
+      const queuedMsg = emailResult.id
+        ? `✅ Activation email queued (id: ${emailResult.id}).`
+        : '✅ Activation email queued.'
+      await interaction.followUp({ content: queuedMsg, ephemeral: true })
+    } else if (emailResult.skipped) {
+      await interaction.followUp({ content: '⚠️ Activation email skipped (RESEND_API_KEY not set).', ephemeral: true })
     }
 
     // Send public notification
@@ -263,17 +271,39 @@ async function sendActivationEmail(email, code, installId) {
       </div>
     `
 
-    await resend.emails.send({
+    const response = await resend.emails.send({
       from: FROM_EMAIL,
       to: [email],
       subject: 'Your PassGen Premium Activation Code',
       html: htmlBody,
       reply_to: REPLY_TO_EMAIL
     })
-    return { ok: true }
+    if (response?.error) {
+      return { ok: false, error: response.error?.message || 'Resend error' }
+    }
+    if (!response?.data?.id) {
+      return { ok: false, error: 'Resend did not return a message id' }
+    }
+    console.log(`📨 Activation email queued (Resend ID: ${response.data.id})`)
+    return { ok: true, id: response.data.id }
   } catch (error) {
     return { ok: false, error: error?.message || 'Email send failed' }
   }
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim())
+}
+
+function normalizeFromAddress(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  if (raw.includes('<') && raw.includes('>')) return raw
+  const match = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
+  if (!match) return null
+  const email = match[0]
+  const name = raw.replace(email, '').replace(/[<>]/g, '').trim()
+  return `${name || 'PassGen'} <${email}>`
 }
 
 // Handle /stats command

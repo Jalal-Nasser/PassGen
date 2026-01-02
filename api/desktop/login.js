@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
   const sessionToken = await getToken({ req, secret })
   if (!sessionToken || !sessionToken.email) {
     const callbackUrl = `${getBaseUrl(req)}/desktop/login?device=${encodeURIComponent(deviceId)}`
-    const signinUrl = `${getBaseUrl(req)}/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    const signinUrl = `${getBaseUrl(req)}/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
     res.statusCode = 302
     res.setHeader('Location', signinUrl)
     return res.end()

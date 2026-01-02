@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
     const Google = GoogleProvider.default || GoogleProvider
     const response = await Auth(request, {
       trustHost: true,
-      basePath: '/api/auth',
+      basePath: '/auth',
       secret,
       providers: [
         Google({ clientId, clientSecret })
@@ -83,7 +83,7 @@ async function toRequest(req) {
     const rawPath = url.searchParams.get('path') || ''
     const normalized = rawPath.split('/').filter(Boolean).join('/')
     url.searchParams.delete('path')
-    url.pathname = `/api/auth/${normalized}`
+    url.pathname = `/auth/${normalized}`
   }
   const body = await readBody(req)
   return new Request(url, {

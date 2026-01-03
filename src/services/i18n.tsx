@@ -58,6 +58,7 @@ const translations: Record<Language, Record<string, string>> = {
     'Open Vault Backup': 'فتح نسخة احتياطية للخزنة',
     'Save Vault Backup': 'حفظ نسخة احتياطية للخزنة',
     'Settings': 'الإعدادات',
+    'Premium Access': 'دخول بريميوم',
     'Exit': 'خروج',
     'Reload': 'إعادة تحميل',
     'Toggle DevTools': 'أدوات المطور',

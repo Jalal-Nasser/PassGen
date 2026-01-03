@@ -25,6 +25,43 @@
   background: #fff;
 }
 
+.settings-premium-card {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-premium-option {
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f9fafb;
+  display: grid;
+  gap: 6px;
+}
+
+.settings-premium-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.settings-premium-sub {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.settings-google-btn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.settings-google-btn img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
 html[dir="rtl"] .settings-section {
   text-align: right;
 }

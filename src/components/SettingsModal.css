@@ -1,8 +1,11 @@
 .settings-modal {
   max-width: 620px;
   padding: 18px;
-  max-height: 86vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow: hidden;
+  background: linear-gradient(160deg, #ffffff, #ede9fe);
+  border: 1px solid rgba(196, 181, 253, 0.9);
+  box-shadow: 0 16px 36px rgba(76, 29, 149, 0.18);
 }
 
 .settings-grid {
@@ -27,15 +30,15 @@
 .settings-section label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #333;
+  color: #4c1d95;
 }
 
 .settings-section select {
   padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  border: 1px solid #ddd6fe;
   font-size: 0.9rem;
-  background: #fff;
+  background: #ffffff;
 }
 
 .settings-toggle {
@@ -59,10 +62,10 @@
 }
 
 .settings-premium-option {
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
+  border: 1px solid #ddd6fe;
+  border-radius: 12px;
   padding: 10px;
-  background: #f9fafb;
+  background: #f5f3ff;
   display: grid;
   gap: 6px;
 }
@@ -70,32 +73,32 @@
 .settings-premium-title {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #111827;
+  color: #312e81;
 }
 
 .settings-premium-sub {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #6b21a8;
 }
 
 .settings-passkey-card {
-  border: 1px dashed #c7d2fe;
-  border-radius: 8px;
+  border: 1px solid #c4b5fd;
+  border-radius: 12px;
   padding: 10px;
-  background: #eef2ff;
+  background: #f5f3ff;
   display: grid;
   gap: 8px;
 }
 
 .settings-passkey-status {
   font-size: 0.78rem;
-  color: #4338ca;
+  color: #6d28d9;
 }
 
 
 .settings-reset-card {
   border: 1px dashed #f3b4b4;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 10px;
   background: #fff5f5;
   display: grid;
@@ -127,6 +130,19 @@
   width: 16px;
   height: 16px;
   object-fit: contain;
+}
+
+.settings-modal .btn-secondary {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.settings-modal .btn-secondary:hover {
+  box-shadow: 0 8px 18px rgba(109, 40, 217, 0.2);
+  transform: translateY(-1px);
 }
 
 html[dir="rtl"] .settings-section {

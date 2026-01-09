@@ -8,10 +8,10 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/sync-icons.js && electron-builder",
+    "build": "node scripts/write-build-info.js && tsc && vite build && node scripts/sync-icons.js && electron-builder",
     "preview": "vite preview",
     "electron:dev": "tsc && concurrently \"vite --port 5173 --strictPort\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "tsc && vite build && node scripts/sync-icons.js && electron-builder",
+    "electron:build": "node scripts/write-build-info.js && tsc && vite build && node scripts/sync-icons.js && electron-builder",
     "test:vault": "tsc && electron . --vault-self-test",
     "test:oauth": "tsc && electron . --oauth-ipc-test",
     "test:auth": "tsc && electron . --auth-test",
@@ -79,6 +79,10 @@
       {
         "from": "resources/.env",
         "to": ".env"
+      },
+      {
+        "from": "resources/build-info.json",
+        "to": "build-info.json"
       }
     ],
     "win": {

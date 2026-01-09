@@ -6,6 +6,10 @@ import './StorageSetup.css'
 import { useI18n } from '../services/i18n'
 
 const googleIconUrl = new URL('../assets/google-g.svg', import.meta.url).href
+const googleIconFallback =
+  typeof window !== 'undefined'
+    ? new URL('./google-g.svg', window.location.href).href
+    : googleIconUrl
 
 interface StorageSetupProps {
   open: boolean
@@ -518,7 +522,15 @@ function StorageSetup({ open, onClose, onConfigured }: StorageSetupProps) {
                         </>
                       ) : (
                         <button type="button" className="secondary-btn premium-google-btn" onClick={handleAuthLogin} disabled={authBusy}>
-                          <img src={googleIconUrl} alt="Google" />
+                          <img
+                            src={googleIconUrl}
+                            alt="Google"
+                            onError={(event) => {
+                              if (event.currentTarget.src !== googleIconFallback) {
+                                event.currentTarget.src = googleIconFallback
+                              }
+                            }}
+                          />
                           {authBusy ? t('Connecting...') : t('Continue with Google')}
                         </button>
                       )}

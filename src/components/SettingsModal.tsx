@@ -5,6 +5,10 @@ import { useI18n } from '../services/i18n'
 import { ConfigStore } from '../services/configStore'
 
 const googleIconUrl = new URL('../assets/google-g.svg', import.meta.url).href
+const googleIconFallback =
+  typeof window !== 'undefined'
+    ? new URL('./google-g.svg', window.location.href).href
+    : googleIconUrl
 
 interface SettingsModalProps {
   open: boolean
@@ -126,7 +130,7 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
   const passkeyStatus = passkeyMessage || (hasPasskey ? t('Passkey setup successful! You can now unlock with your biometric.') : null)
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal settings-modal modal-scroll" onClick={(e) => e.stopPropagation()}>
+      <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <h2>{t('Settings')}</h2>
         <div className="settings-grid">
           <div className="settings-section settings-section--full">
@@ -156,17 +160,25 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
             <div className="settings-premium-card">
               <div className="settings-premium-option">
                 <div className="settings-premium-title">{t('Already Premium?')}</div>
-                <div className="settings-premium-sub">{t('Sign in with Google to unlock cloud storage.')}</div>
+                <div className="settings-premium-sub">{t('Sign in with Google to connect cloud storage.')}</div>
                 <button className="btn-secondary settings-google-btn" onClick={openPremiumSignIn}>
-                  <img src={googleIconUrl} alt="Google" />
+                  <img
+                    src={googleIconUrl}
+                    alt="Google"
+                    onError={(event) => {
+                      if (event.currentTarget.src !== googleIconFallback) {
+                        event.currentTarget.src = googleIconFallback
+                      }
+                    }}
+                  />
                   {t('Continue with Google')}
                 </button>
               </div>
               <div className="settings-premium-option">
                 <div className="settings-premium-title">{t('Become Premium')}</div>
-                <div className="settings-premium-sub">{t('Request activation after payment to unlock Premium.')}</div>
+                <div className="settings-premium-sub">{t('Pick a plan on the payment page, then enter your license key.')}</div>
                 <button className="btn-secondary" onClick={openPremiumUpgrade}>
-                  {t('Request Activation')}
+                  {t('Pick a Plan')}
                 </button>
               </div>
             </div>

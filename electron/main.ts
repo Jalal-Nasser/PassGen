@@ -1,9 +1,11 @@
 import { app, BrowserWindow, ipcMain, shell, Menu, dialog, clipboard, protocol, safeStorage, Tray, nativeImage } from 'electron'
+import { execSync } from 'child_process'
 import Store from 'electron-store'
 import * as http from 'http'
 import * as crypto from 'crypto'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as os from 'os'
 // Load environment variables from .env (dev + packaged extraResources)
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -54,6 +56,7 @@ let appServer: http.Server | null = null; // Local app server for WebAuthn-safe 
 let appServerReady = false;
 let tray: Tray | null = null;
 let isQuitting = false;
+let aboutWindow: BrowserWindow | null = null;
 
 type AppSettings = {
   minimizeToTray: boolean
@@ -92,6 +95,273 @@ function toBase64Url(buffer: Buffer): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function safeExec(command: string): string | null {
+  try {
+    return execSync(command, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+  } catch {
+    return null
+  }
+}
+
+function readBuildInfo(): { commit?: string; commitFull?: string; date?: string } | null {
+  const candidates = [
+    path.join(process.resourcesPath || '', 'build-info.json'),
+    path.join(process.resourcesPath || '', 'app.asar.unpacked', 'build-info.json'),
+    path.join(process.cwd(), 'resources', 'build-info.json'),
+    path.join(process.cwd(), 'build-info.json')
+  ]
+  for (const candidate of candidates) {
+    try {
+      if (candidate && fs.existsSync(candidate)) {
+        const parsed = JSON.parse(fs.readFileSync(candidate, 'utf-8'))
+        if (parsed && typeof parsed === 'object') return parsed
+      }
+    } catch {
+      // ignore invalid build info
+    }
+  }
+  return null
+}
+
+function getCommitInfo(): { commit: string; commitFull: string; date: string } {
+  const buildInfo = readBuildInfo()
+  const envCommit =
+    process.env.PASSGEN_COMMIT ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    process.env.GIT_COMMIT ||
+    ''
+  const commitFull = buildInfo?.commitFull || buildInfo?.commit || envCommit || safeExec('git rev-parse HEAD') || ''
+  const commit = commitFull ? commitFull.slice(0, 12) : (buildInfo?.commit || 'unknown')
+  const envDate =
+    process.env.PASSGEN_BUILD_DATE ||
+    process.env.VERCEL_GIT_COMMIT_DATE ||
+    process.env.BUILD_DATE ||
+    ''
+  const date = buildInfo?.date || envDate || safeExec('git log -1 --format=%cI') || ''
+  return { commit, commitFull: commitFull || 'unknown', date }
+}
+
+function formatRelativeDate(dateText: string): string | null {
+  const parsed = Date.parse(dateText)
+  if (Number.isNaN(parsed)) return null
+  const diffMs = Date.now() - parsed
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays < 1) return 'today'
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+  const diffWeeks = Math.floor(diffDays / 7)
+  if (diffWeeks < 8) return `${diffWeeks} wk${diffWeeks === 1 ? '' : 's'} ago`
+  const diffMonths = Math.floor(diffDays / 30)
+  return `${diffMonths} mo${diffMonths === 1 ? '' : 's'} ago`
+}
+
+function getAboutInfo() {
+  const version = app.getVersion()
+  const commitInfo = getCommitInfo()
+  const dateLabel = commitInfo.date
+  const relative = commitInfo.date ? formatRelativeDate(commitInfo.date) : null
+  const dateLine = dateLabel ? `${dateLabel}${relative ? ` (${relative})` : ''}` : 'unknown'
+  const platformLabel = process.platform === 'win32' ? 'Windows_NT' : process.platform === 'darwin' ? 'Darwin' : 'Linux'
+  const osLabel = `${platformLabel} ${process.arch} ${os.release()}`
+  const languageServerCl = process.env.PASSGEN_LS_CL || ''
+  return {
+    appVersion: version,
+    commit: commitInfo.commit,
+    commitFull: commitInfo.commitFull,
+    date: dateLine,
+    electron: process.versions.electron,
+    chromium: process.versions.chrome,
+    node: process.versions.node,
+    v8: process.versions.v8,
+    os: osLabel,
+    languageServerCl
+  }
+}
+
+function buildAboutHtml() {
+  const info = getAboutInfo()
+  const aboutIconCandidates = [
+    path.join(process.cwd(), 'public', 'icon.png'),
+    path.join(process.cwd(), 'dist', 'icon.png'),
+    resolveIconPath()
+  ].filter(Boolean) as string[]
+  const iconPath = aboutIconCandidates.find((candidate) => candidate && fs.existsSync(candidate)) || ''
+  const iconUrl = iconPath ? `file://${iconPath.replace(/\\/g, '/')}` : ''
+  const rows = [
+    ['PassGen Version', info.appVersion],
+    ['Commit', info.commit],
+    ['Date', info.date],
+    ['Electron', info.electron],
+    ['Chromium', info.chromium],
+    ['Node.js', info.node],
+    ['V8', info.v8],
+    ['OS', info.os]
+  ]
+  if (info.languageServerCl) {
+    rows.push(['Language Server CL', info.languageServerCl])
+  }
+  const rowHtml = rows.map(([label, value]) => `
+    <div class="row">
+      <span class="label">${label}:</span>
+      <span class="value">${value || 'unknown'}</span>
+    </div>
+  `).join('')
+  const copyText = rows.map(([label, value]) => `${label}: ${value || 'unknown'}`).join('\n')
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>About PassGen</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Inter", sans-serif;
+        background: #f5f3ff;
+        color: #1f2937;
+        overflow: hidden;
+      }
+      .frame {
+        margin: 14px;
+        border-radius: 16px;
+        padding: 16px 18px 14px;
+        border: 1px solid rgba(196, 181, 253, 0.9);
+        box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.18), 0 16px 32px rgba(76, 29, 149, 0.18);
+        background: linear-gradient(160deg, #ffffff, #ede9fe);
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(139, 92, 246, 0.12);
+        border: 2px solid rgba(139, 92, 246, 0.5);
+        color: #6d28d9;
+        font-weight: 700;
+        font-size: 18px;
+        overflow: hidden;
+      }
+      .icon img {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+        font-weight: 700;
+        color: #312e81;
+      }
+      .rows {
+        display: grid;
+        gap: 5px;
+        font-size: 13px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+      }
+      .label {
+        min-width: 150px;
+        color: #4c1d95;
+        font-weight: 700;
+      }
+      .value {
+        color: #1f2937;
+        word-break: break-all;
+      }
+      .actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-weight: 700;
+        background: linear-gradient(130deg, #6d28d9, #8b5cf6);
+        color: #ffffff;
+        box-shadow: 0 10px 22px rgba(109, 40, 217, 0.25);
+      }
+      button.secondary {
+        background: #f5f3ff;
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        color: #5b21b6;
+        box-shadow: none;
+      }
+      .link-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div class="header">
+        <div class="icon">${iconUrl ? `<img src="${iconUrl}" alt="PassGen" />` : 'i'}</div>
+        <h1>PassGen</h1>
+      </div>
+      <div class="rows">
+        ${rowHtml}
+      </div>
+      <div class="actions">
+        <div class="link-row">
+          <button class="secondary" data-href="${HELP_WEBSITE_URL}">Website</button>
+          <button class="secondary" data-href="${HELP_RELEASES_URL}">GitHub</button>
+          <button class="secondary" data-href="${HELP_ISSUES_URL}">Support</button>
+        </div>
+        <div class="link-row">
+          <button class="secondary" id="copyBtn">Copy</button>
+          <button id="okBtn">OK</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      const text = ${JSON.stringify(copyText)};
+      const copy = async () => {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+          }
+        } catch {}
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
+        document.execCommand('copy');
+        document.body.removeChild(area);
+      };
+      document.getElementById('copyBtn').addEventListener('click', copy);
+      document.getElementById('okBtn').addEventListener('click', () => window.close());
+      document.querySelectorAll('[data-href]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const url = btn.getAttribute('data-href');
+          if (url) window.open(url, '_blank');
+        });
+      });
+    </script>
+  </body>
+</html>`
 }
 
 function getMinimizeToTraySetting(): boolean {
@@ -238,8 +508,6 @@ const HELP_WEBSITE_URL = 'https://mdeploy.dev'
 const HELP_TERMS_URL = 'https://github.com/Jalal-Nasser/PassGen-Releases/blob/main/LICENSE.txt'
 const KEYBOARD_SHORTCUTS_DETAIL =
   'Ctrl+C - Copy password\nCtrl+L - Lock vault\nCtrl+N - New password entry\nCtrl+F - Search vault\nCtrl+Q - Quit application\nF5 - Refresh\nF11 - Toggle fullscreen'
-const ABOUT_DETAIL =
-  'A secure password generator and vault.\n\nDeveloper: JalalNasser\nLicense: MIT\n\nFeatures:\n• Generate secure passwords\n• Encrypt and store passwords\n• Cloud sync (Premium)\n• Browser extension support\n\nPremium: $15 / 6 months for cloud sync and unlimited items.'
 
 const AUTH_PROTOCOL = 'passgen'
 const APP_PROTOCOL = 'passgen-app'
@@ -294,20 +562,49 @@ function showKeyboardShortcuts() {
 }
 
 function showAboutDialog() {
-  const version = app.getVersion()
-  dialog.showMessageBox({
-    type: 'info',
+  if (aboutWindow && !aboutWindow.isDestroyed()) {
+    aboutWindow.focus()
+    return
+  }
+  aboutWindow = new BrowserWindow({
+    width: 520,
+    height: 420,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    show: false,
+    autoHideMenuBar: true,
     title: 'About PassGen',
-    message: `PassGen v${version}`,
-    detail: ABOUT_DETAIL,
-    buttons: ['OK', 'Website', 'GitHub', 'Report Issue'],
-    defaultId: 0,
-    cancelId: 0
-  }).then(({ response }) => {
-    if (response === 1) shell.openExternal(HELP_WEBSITE_URL)
-    if (response === 2) shell.openExternal(HELP_DOCS_URL)
-    if (response === 3) shell.openExternal(HELP_ISSUES_URL)
+    icon: resolveIconPath(),
+    backgroundColor: '#0b1f3a',
+    parent: mainWindow || undefined,
+    modal: !!mainWindow,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false
+    }
   })
+  aboutWindow.once('ready-to-show', () => aboutWindow?.show())
+  aboutWindow.on('closed', () => {
+    aboutWindow = null
+  })
+  aboutWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url && /^https?:\/\//i.test(url)) {
+      shell.openExternal(url)
+    }
+    return { action: 'deny' }
+  })
+  aboutWindow.webContents.on('will-navigate', (event, url) => {
+    if (url && url.startsWith('data:')) return
+    event.preventDefault()
+    if (url && /^https?:\/\//i.test(url)) {
+      shell.openExternal(url)
+    }
+  })
+  const html = buildAboutHtml()
+  aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
 }
 
 function getVercelBaseUrl(): string {

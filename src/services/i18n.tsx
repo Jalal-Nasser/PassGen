@@ -113,6 +113,8 @@ const translations: Record<Language, Record<string, string>> = {
     'Save Vault Backup': 'حفظ نسخة احتياطية للخزنة',
     'Settings': 'الإعدادات',
     'Premium Access': 'دخول بريميوم',
+    'Sign in with Google to connect cloud storage.': 'سجّل الدخول باستخدام Google لربط التخزين السحابي.',
+    'Pick a plan on the payment page, then enter your license key.': 'اختر خطة من صفحة الدفع ثم أدخل مفتاح الترخيص.',
     'Minimize to tray': 'تصغير إلى شريط النظام',
     'Keep PassGen running in the tray when you close the window.': 'إبقاء PassGen يعمل في شريط النظام عند إغلاق النافذة.',
     'Exit': 'خروج',

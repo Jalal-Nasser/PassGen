@@ -1,4 +1,4 @@
-# PassGen - Password Generator & Vault Desktop App
+# Password Vault & Developer Secret Manager for Windows
 
 A secure and user-friendly desktop application for generating strong passwords and storing them encrypted in the cloud.
 
@@ -266,4 +266,5 @@ PassGen/
 ## License
 
 MIT
+
 

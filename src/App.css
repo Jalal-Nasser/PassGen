@@ -88,31 +88,33 @@
   color: #111;
 }
 
-.footer-payments {
+.footer-clouds {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 3px;
+  margin-bottom: 6px;
 }
 
-.footer-payment-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 3px 6px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+.footer-cloud-card {
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: none;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  height: 24px;
+  min-width: 68px;
+  height: 34px;
 }
 
-.footer-payment-card img {
-  height: 10px;
-  max-width: 48px;
+.footer-cloud-card img {
+  height: 24px;
+  max-width: 80px;
   object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
 }
 
 .app-footer a {
@@ -125,15 +127,15 @@
 }
 
 @media (max-width: 640px) {
-  .footer-payment-card {
-    padding: 3px 5px;
-    min-width: 44px;
-    height: 22px;
+  .footer-cloud-card {
+    padding: 3px 8px;
+    min-width: 60px;
+    height: 30px;
   }
 
-  .footer-payment-card img {
-    height: 9px;
-    max-width: 44px;
+  .footer-cloud-card img {
+    height: 22px;
+    max-width: 70px;
   }
 }
 

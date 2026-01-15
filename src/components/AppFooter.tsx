@@ -7,41 +7,29 @@ function AppFooter() {
 
   return (
     <footer className="app-footer">
-      <div className="footer-payments" aria-label="Supported payment methods">
-        <div className="footer-payment-card">
+      <div className="footer-clouds" aria-label="Supported cloud storage providers">
+        <div className="footer-cloud-card">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
-            alt="Mastercard"
+            src="/google-drive.png"
+            alt="Google Drive"
           />
         </div>
-        <div className="footer-payment-card">
+        <div className="footer-cloud-card">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
-            alt="Visa"
+            src="/aws-s3.svg"
+            alt="AWS S3"
           />
         </div>
-        <div className="footer-payment-card">
+        <div className="footer-cloud-card">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg"
-            alt="Apple Pay"
+            src="/supabase.svg"
+            alt="Supabase"
           />
         </div>
-        <div className="footer-payment-card">
+        <div className="footer-cloud-card">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg"
-            alt="Google Pay"
-          />
-        </div>
-        <div className="footer-payment-card">
-          <img
-            src="./paypal.svg"
-            alt="PayPal"
-          />
-        </div>
-        <div className="footer-payment-card">
-          <img
-            src="./bitcoin.svg"
-            alt="Bitcoin"
+            src="/onedrive.svg"
+            alt="OneDrive"
           />
         </div>
       </div>

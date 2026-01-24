@@ -25,6 +25,7 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
   const [licenseKey, setLicenseKey] = useState('')
   const [activationCode, setActivationCode] = useState('')
+  const [activationEmail, setActivationEmail] = useState('')
   const [redeeming, setRedeeming] = useState(false)
 
   const redeemLicenseKey = async () => {
@@ -52,12 +53,15 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
   const redeemActivationCode = () => {
     if (!activationCode) { alert(t('Enter activation code')); return }
-    if (store.verifyActivationCode(activationCode)) {
+    if (!activationEmail) { alert(t('Enter activation email')); return }
+
+    if (store.verifyActivationCode(activationCode, activationEmail)) {
+      store.setUserEmail(activationEmail)
       store.setPremium(true)
       onClose()
       alert(t('Premium activated locally. Enjoy!'))
     } else {
-      alert(t('Invalid activation code for this device'))
+      alert(t('Invalid activation code for this device or email'))
     }
   }
 
@@ -172,11 +176,21 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
           <div className="section-heading">
             <span className="pill warning">{t('Step 3')}</span>
             <div>
-              <div className="section-title">{t('Activation Code')}</div>
-              <div className="section-sub">{t('If you received a 10-character code from the dashboard, enter it here.')}</div>
+              <div className="section-title">{t('Support Activation')}</div>
+              <div className="section-sub">{t('Admins: Paste both the Email and Code from the dashboard.')}</div>
             </div>
           </div>
-          <div className="activation-fields">
+          <div className="activation-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="email-capture">
+              <label>{t('Email')}</label>
+              <input
+                type="email"
+                placeholder={t('user@example.com')}
+                value={activationEmail}
+                onChange={(e) => setActivationEmail(e.target.value)}
+                className="ltr-input"
+              />
+            </div>
             <div className="email-capture">
               <label>{t('Activation Code')}</label>
               <input
